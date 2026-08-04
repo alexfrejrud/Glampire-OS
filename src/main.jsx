@@ -98,7 +98,7 @@ function mediaDownloadUrl(item) {
 }
 
 function mediaDownloadName(item, url) {
-    const base = String(item?.headline || item?.id || 'taskiz')
+    const base = String(item?.headline || item?.id || 'creative')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
@@ -549,7 +549,7 @@ const DEFAULT_AD_ANGLES = [
     { id: 'field', label: 'Field', short: 'Field', description: 'Truck · jobsite · phone', ico: 'F' },
     { id: 'outcome', label: 'Outcome', short: 'Outcome', description: 'Get paid · stay organized', ico: 'O' },
     { id: 'one_app', label: 'One app', short: 'One app', description: 'Customers → invoices', ico: '1' },
-    { id: 'beta', label: 'Beta invite', short: 'Beta', description: 'Join the Beta', ico: 'B' },
+    { id: 'beta', label: 'Conversion', short: 'Convert', description: 'Primary CTA push', ico: 'B' },
 ];
 
 const DEFAULT_AD_OBJECTIVES = [
@@ -574,7 +574,7 @@ function CreateView({
     const [mode, setMode] = useState('auto'); // auto | prompt | images | ads
     const [brief, setBrief] = useState('');
     const [packId, setPackId] = useState('stories');
-    const [styleId, setStyleId] = useState(brand?.defaultVideoStyleId || 'contractor_talk');
+    const [styleId, setStyleId] = useState(brand?.defaultVideoStyleId || 'documentary_commercial');
     const [flowId, setFlowId] = useState(brand?.defaultFlowId || 'testimonial_talk');
     const [videoModelId, setVideoModelId] = useState(brand?.defaultVideoModelId || 'grok');
     const [brandChrome, setBrandChrome] = useState(brand?.defaultBrandChrome || 'organic');
@@ -775,7 +775,7 @@ function CreateView({
           ? 'Generate images'
           : 'Generate content';
     const heroBody = isAds
-        ? 'Finished ads with Taskiz logo, type, and CTA. Brand guide locked — plates stay photo-only; design is composed after.'
+        ? 'Finished ads with workspace logo, type, and CTA. Brand OS locked — plates stay photo-only; design is composed after.'
         : isImages
           ? 'Posters & social banners. Brand ICP stays locked — your prompt steers the campaign; auto-vary keeps faces and outfits different.'
           : 'Auto runs the factory on brand defaults. Prompt steers casting, vibe, and angle for this batch only.';
@@ -869,7 +869,7 @@ function CreateView({
                                         isAds
                                             ? 'Optional campaign steer… e.g. Sunday night invoicing pain for solo handymen — or leave blank for Brand OS angles'
                                             : isImages
-                                              ? 'What to show… e.g. summer promo — contractors finally getting paid faster, warm outdoor energy'
+                                              ? 'What to show… e.g. summer promo — clear outcome, warm outdoor energy'
                                               : 'Steer this batch… e.g. Mexican American solo GCs, San Antonio driveways, tired-but-hopeful, invoicing pain'
                                     }
                                 />
@@ -1180,11 +1180,34 @@ function CreateView({
 
 /* ───────────────── card ───────────────── */
 
+/** CSS ratio class for media-frame — must match export aspect or type gets cropped */
+function mediaFrameRatioClass(item) {
+    if (item?.format === 'reel') return 'ratio-916';
+    const ar = String(item?.aspectRatio || item?.size || '').trim();
+    const map = {
+        '1:1': 'ratio-11',
+        '3:4': 'ratio-34',
+        '4:5': 'ratio-45',
+        '2:3': 'ratio-23',
+        '9:16': 'ratio-916',
+        '16:9': 'ratio-169',
+        '3:2': 'ratio-32',
+        '4:3': 'ratio-43',
+    };
+    if (map[ar]) return map[ar];
+    // size label like "1080×1440"
+    if (/1080\s*[×x]\s*1440/i.test(String(item?.size || ''))) return 'ratio-34';
+    if (/1080\s*[×x]\s*1350/i.test(String(item?.size || ''))) return 'ratio-45';
+    if (/1080\s*[×x]\s*1920/i.test(String(item?.size || ''))) return 'ratio-916';
+    return 'ratio-11';
+}
+
 function MediaPreview({ item }) {
+    const ratioClass = mediaFrameRatioClass(item);
     const finalVid = item.composedVideoUrl || item.finalVideoUrl || item.videoUrl;
     if (finalVid) {
         return (
-            <div className={`media-frame ratio-${item.format === 'reel' ? '916' : '11'}`}>
+            <div className={`media-frame ${ratioClass}`}>
                 <video
                     src={finalVid}
                     controls
@@ -1233,13 +1256,18 @@ function MediaPreview({ item }) {
     }
     if (item.imageUrl) {
         return (
-            <div className={`media-frame ratio-${item.format === 'reel' ? '916' : '11'}`}>
-                <img src={item.imageUrl} alt={item.headline} />
+            <div className={`media-frame ${ratioClass}`}>
+                <img
+                    src={item.imageUrl}
+                    alt={item.headline}
+                    // cache-bust when adUrl updates after recompose
+                    key={item.adUrl || item.imageUrl}
+                />
             </div>
         );
     }
     return (
-        <div className={`media-frame ratio-${item.format === 'reel' ? '916' : '11'} empty`}>
+        <div className={`media-frame ${ratioClass} empty`}>
             <ImageIcon size={28} />
             <span>No media yet</span>
         </div>
@@ -1372,13 +1400,26 @@ function ItemCard({
                     className="ghost"
                     disabled={isBusy}
                     onClick={() => onGenerateImage(item)}
+                    title={
+                        item.kind === 'ad_batch' || item.batchMode === 'ads'
+                            ? item.plateUrl
+                                ? 'Re-apply brand type & CTA on existing photo (no new Grok cost)'
+                                : 'Generate photo plate + compose brand ad'
+                            : undefined
+                    }
                 >
                     {isBusy ? <Loader2 className="spin" size={14} /> : <ImageIcon size={14} />}
                     {isStoryReel
                         ? beatsReady
                             ? 'Regen beat stills'
                             : 'Generate beat stills'
-                        : item.imageUrl || item.slides?.some((s) => s.imageUrl)
+                        : item.kind === 'ad_batch' || item.batchMode === 'ads'
+                          ? item.plateUrl
+                              ? 'Recompose type'
+                              : item.imageUrl
+                                ? 'Regen ad'
+                                : 'Generate ad'
+                          : item.imageUrl || item.slides?.some((s) => s.imageUrl)
                             ? 'Regen stills'
                             : 'Generate stills'}
                 </button>
@@ -2544,7 +2585,7 @@ function LibraryView({ onToast }) {
                         description="Comma-separated"
                         value={form.tags}
                         onChange={(v) => setForm((f) => ({ ...f, tags: v }))}
-                        placeholder="handyman, driveway, natural"
+                        placeholder="subject, setting, lighting"
                         width="100%"
                     />
                     <label className="tool-drop" style={{ minHeight: 100 }}>
@@ -3008,15 +3049,15 @@ function PublishModal({ item, profiles, defaultUser, onClose, onConfirm, loading
             .map((p) => p.username || p.name || p.user)
             .filter(Boolean);
         if (defaultUser && !list.includes(defaultUser)) list.unshift(defaultUser);
-        if (!list.length) list.push(defaultUser || 'TASKIZ');
+        if (!list.length && defaultUser) list.push(defaultUser);
         return list;
     }, [profiles, defaultUser]);
 
-    const [user, setUser] = useState(defaultUser || profileNames[0] || 'TASKIZ');
+    const [user, setUser] = useState(defaultUser || profileNames[0] || '');
     const [selected, setSelected] = useState(() => {
         // Prefer platforms already connected on the profile when available
         const profile = (profiles || []).find(
-            (p) => (p.username || p.name) === (defaultUser || 'TASKIZ')
+            (p) => (p.username || p.name) === (defaultUser || profileNames[0])
         );
         const connected = Object.entries(profile?.social_accounts || {})
             .filter(([, v]) => v !== '' && v != null)
@@ -3204,7 +3245,7 @@ function App() {
     const [publishing, setPublishing] = useState(false);
     const [workspaces, setWorkspaces] = useState([]);
     const [activeWorkspace, setActiveWorkspace] = useState(null);
-    const [publishUser, setPublishUser] = useState('TASKIZ');
+    const [publishUser, setPublishUser] = useState('');
     const [themeMode, setThemeMode] = useState(() => loadThemeMode());
     const [onboardingOpen, setOnboardingOpen] = useState(false);
     const [onboardingMode, setOnboardingMode] = useState('resume'); // create | resume
@@ -3235,7 +3276,11 @@ function App() {
         setStyles(stylesRes.styles || []);
         setFlows(flowsRes.flows || []);
         setVideoModels(modelsRes.models || []);
-        setPublishUser(pubRes?.publish?.uploadPostUser || brandRes?.name?.toUpperCase() || 'TASKIZ');
+        setPublishUser(
+            pubRes?.publish?.uploadPostUser ||
+                (brandRes?.name ? String(brandRes.name).toUpperCase().replace(/[^A-Z0-9]/g, '') : '') ||
+                ''
+        );
         // Load queue, then re-attach any finished finals missing from the UI (e.g. after Bad Gateway)
         const local = loadStore();
         try {
@@ -3599,6 +3644,32 @@ function App() {
                 setToast(`${beats.length} beat stills ready`);
             } else {
                 const isAd = item.kind === 'ad_batch' || item.batchMode === 'ads';
+
+                // Ads with an existing plate: recompose type only (no Grok) — fixes fonts/layout for free
+                if (isAd && item.plateUrl) {
+                    setToast('Recomposing brand type…');
+                    const composed = await api.composeAd({
+                        id: `${item.id}-${Date.now().toString(36).slice(-4)}`,
+                        plateUrl: item.plateUrl,
+                        aspectRatio: item.aspectRatio || '3:4',
+                        templateId: item.templateId || 'hero',
+                        headline: item.headline,
+                        shortHeadline: item.shortHeadline,
+                        support: item.support || item.body,
+                        body: item.body,
+                        cta: item.cta,
+                    });
+                    patchItem(item.id, {
+                        adUrl: composed.adUrl,
+                        imageUrl: composed.adUrl,
+                        status: 'ready',
+                        error: null,
+                        templateId: composed.templateId || item.templateId,
+                    });
+                    setToast('Ad recomposed · type + CTA refreshed');
+                    return;
+                }
+
                 const useRef =
                     item.matchReference &&
                     (item.referenceImage || item.referenceDataUrl);
@@ -3640,7 +3711,6 @@ function App() {
                         });
                         setToast('Ad ready · logo + type composed');
                     } catch (composeErr) {
-                        // Plate still usable if compose fails
                         patchItem(item.id, {
                             plateUrl,
                             imageUrl: plateUrl,
@@ -3944,7 +4014,7 @@ function App() {
             const list = data.profiles || [];
             setProfiles(Array.isArray(list) ? list : []);
         } catch (e) {
-            setProfiles([{ username: publishUser || 'TASKIZ' }]);
+            setProfiles(publishUser ? [{ username: publishUser }] : []);
             setToast(e.message);
         }
     }
@@ -4114,7 +4184,7 @@ function App() {
                     <PublishModal
                         item={publishItem}
                         profiles={profiles}
-                        defaultUser={publishUser || 'TASKIZ'}
+                        defaultUser={publishUser || ''}
                         onClose={() => setPublishItem(null)}
                         onConfirm={confirmPublish}
                         loading={publishing}

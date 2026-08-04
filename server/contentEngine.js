@@ -15,10 +15,10 @@ const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice
 
 /**
  * Shared continuity plate for talk-story reels.
- * Same man + wardrobe across beats → better I2V identity + assemble cut quality.
+ * Same person + wardrobe across beats → better I2V identity + assemble cut quality.
  */
 const TALK_CHAR =
-  'the same authentic solo handyman, mid-40s, short brown hair, light stubble, faded navy work shirt with no logos, natural skin texture, raw UGC not stock';
+  'the same authentic on-camera subject, mid-30s to mid-50s, natural skin texture, plain unbranded clothing, raw UGC not stock';
 
 function talkSubjects(hookScene, tensionScene, resolveScene) {
   return {
@@ -29,18 +29,133 @@ function talkSubjects(hookScene, tensionScene, resolveScene) {
 }
 
 /**
- * Brand-locked content library.
- * AI "understands" Taskiz by assembling from GTM pillars — no freeform prompting needed.
- *
- * Reel rules (Phase 1 quality bar):
- * - First-person peer voice (owner-operator, not SaaS marketer)
- * - Spoken lines fit ~4s (≈10–16 words)
- * - Keywords 2–4 words for face-safe overlays
- * - Explicit tension/resolve subjects for multi-beat continuity
- * - CTA always Join the Beta / Start Free / See How It Works
- * - Never claim do-not-say items (AI receptionist, full FSM, SMS inbox, etc.)
+ * Generic idea pool from active Brand OS (any client).
+ * Client-specific libraries live under clients/<id>/ — never hardcode another brand here.
  */
-const IDEA_POOL = [
+function buildBrandIdeaPool(brand) {
+  const name = brand.name || 'the product';
+  const oneLiner = brand.oneLiner || brand.promise || '';
+  const cta = brand.primaryCta || brand.ctas?.[0] || 'Learn more';
+  const features = brand.keyFeatures || [];
+  const icp = (brand.icp?.primary || [])[0] || 'your customer';
+  const photo = brand.photographyStyle || 'documentary commercial photography, authentic subjects, natural light';
+
+  return [
+    {
+      pillar: 'pain',
+      format: 'post',
+      headline: `Still fighting the old way?`,
+      body: oneLiner || `There's a clearer path with ${name}.`,
+      caption: `${oneLiner}\n\n${brand.supporting || ''}\n\n${cta}`.trim(),
+      cta,
+      imageSubject: `Photoreal scene for ${name}: ${icp} in a real-world moment of friction, ${photo}, intentional negative space`,
+      videoMotion: 'Gentle camera push-in, natural light shift',
+    },
+    {
+      pillar: 'demo',
+      format: 'post',
+      headline: oneLiner || name,
+      body: brand.supporting || brand.promise || oneLiner,
+      caption: `${brand.supporting || oneLiner}\n\n${cta}`.trim(),
+      cta,
+      imageSubject: `Product or outcome moment for ${name}, ${photo}, clean composition for later text`,
+      videoMotion: 'Subtle cinematic push-in',
+    },
+    {
+      pillar: 'before_after',
+      format: 'carousel',
+      headline: `Before ${name} vs after`,
+      body: oneLiner,
+      caption: `Swipe: the shift →\n\n${cta}`,
+      cta,
+      slides: [
+        {
+          headline: 'Before',
+          body: 'The old workflow. Friction, scatter, delay.',
+          imageSubject: `Before-state friction for ${icp}, realistic environment, ${photo}`,
+        },
+        {
+          headline: 'After',
+          body: oneLiner || `Clarity with ${name}`,
+          imageSubject: `After-state calm outcome for ${icp}, ${photo}`,
+        },
+        {
+          headline: cta,
+          body: brand.promise || brand.supporting || oneLiner,
+          imageSubject: `Hero brand moment for ${name}, ${photo}, empty lower third`,
+        },
+      ],
+    },
+    {
+      pillar: 'education',
+      format: 'post',
+      headline: features[0] ? `Why ${features[0]} matters` : `What ${icp} should know`,
+      body: brand.supporting || oneLiner,
+      caption: `${brand.supporting || oneLiner}\n\n${cta}`.trim(),
+      cta,
+      imageSubject: `Educational lifestyle still for ${name}, ${photo}`,
+      videoMotion: 'Slow parallax, calm commercial energy',
+    },
+    {
+      pillar: 'trust',
+      format: 'post',
+      headline: `Built for ${icp}`,
+      body: brand.promise || oneLiner,
+      caption: `${oneLiner}\n\n${cta}`.trim(),
+      cta,
+      imageSubject: `Trust-building authentic moment for ${name}, ${photo}`,
+      videoMotion: 'Gentle push-in',
+    },
+    {
+      id: 'reel-brand-talk',
+      priority: 100,
+      pillar: 'pain',
+      format: 'reel',
+      flowId: brand.defaultFlowId || 'pain_to_cta',
+      styleId: brand.defaultVideoStyleId || 'documentary_commercial',
+      headline: oneLiner || name,
+      body: brand.supporting || '',
+      deliveryMode: brand.defaultDeliveryMode || 'caption_talk',
+      hookKeyword: 'The old way',
+      tensionKeyword: 'The cost',
+      resolveKeyword: name,
+      hookLine: 'The old way',
+      tensionLine: 'The cost',
+      resolveLine: oneLiner || name,
+      dialogueHook: `I kept doing it the hard way.`,
+      dialogueTension: `It was costing me more than I wanted to admit.`,
+      dialogueResolve: oneLiner
+        ? `${oneLiner} ${cta}.`
+        : `${name} changed that. ${cta}.`,
+      caption: `${oneLiner}\n\n${cta}`.trim(),
+      cta,
+      ...talkSubjects(
+        'natural environment soft bokeh, open confessional expression, mid-speech',
+        'same setting, heavier frustration, mid-speech',
+        'calmer relieved confidence, leave lower third clean for CTA'
+      ),
+    },
+    {
+      pillar: 'demo',
+      format: 'reel',
+      flowId: brand.defaultFlowId || 'pain_to_cta',
+      styleId: brand.defaultVideoStyleId || 'documentary_commercial',
+      headline: features[0] || name,
+      body: oneLiner,
+      caption: `${oneLiner}\n\n${cta}`.trim(),
+      cta,
+      imageSubject: `Demo-ready still for ${name}, ${photo}, vertical-friendly framing`,
+      videoMotion: 'Subtle product-in-use motion, commercial pace',
+      deliveryMode: brand.defaultDeliveryMode || 'caption_talk',
+    },
+  ];
+}
+
+/**
+ * Taskiz-only legacy idea bank (client workspace).
+ * Other workspaces use buildBrandIdeaPool(getBrand()) — never this list.
+ */
+const TASKIZ_IDEA_POOL = [
   // ── PAIN ──────────────────────────────────────────────────────────
   {
     pillar: 'pain',
@@ -680,9 +795,18 @@ export function listPacks() {
  * Generate a content batch.
  * options: { styleId, flowId, storyMode }
  */
+function resolveIdeaPool(brand) {
+  // Taskiz client keeps its handcrafted GTM bank; everyone else is Brand OS–derived
+  if (brand?.id === 'taskiz' || brand?.ideaSource === 'builtin:taskiz') {
+    return TASKIZ_IDEA_POOL;
+  }
+  return buildBrandIdeaPool(brand || getBrand());
+}
+
 export function generateBatch(packId = 'weekly', options = {}) {
   const pack = PACKS[packId] || PACKS.weekly;
-  const selected = pack.pick(IDEA_POOL);
+  const brand = getBrand();
+  const selected = pack.pick(resolveIdeaPool(brand));
   const storyMode = options.storyMode ?? (packId === 'stories' || packId === 'reels');
   const videoModelId = options.videoModelId || getBrand().defaultVideoModelId || 'grok';
   const batchBrief = (options.batchBrief || options.brief || '').trim() || null;

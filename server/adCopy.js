@@ -5,48 +5,48 @@
 
 import { getBrand } from './brand.js';
 
-/** Performance angles (marketingskills-style) mapped to Taskiz truth */
+/** Performance angles — generic; copy is filled from active Brand OS */
 export const AD_ANGLES = [
   {
     id: 'auto',
     label: 'Auto mix',
     short: 'Mix',
-    description: 'Rotate pain / field / outcome / beta',
+    description: 'Rotate pain / proof / outcome / offer',
     ico: 'M',
   },
   {
     id: 'pain',
     label: 'Pain',
     short: 'Pain',
-    description: 'Scattered admin, late invoices, five apps',
+    description: 'Core friction the ICP feels',
     ico: 'P',
   },
   {
     id: 'field',
-    label: 'Field',
-    short: 'Field',
-    description: 'Truck, jobsite, phone-as-tool',
+    label: 'In-context',
+    short: 'Context',
+    description: 'Real-world use moment',
     ico: 'F',
   },
   {
     id: 'outcome',
     label: 'Outcome',
     short: 'Outcome',
-    description: 'Get paid / stay organized from phone',
+    description: 'Result after the product',
     ico: 'O',
   },
   {
     id: 'one_app',
-    label: 'One app',
-    short: 'One app',
-    description: 'Customers → jobs → estimates → invoices',
+    label: 'Offer',
+    short: 'Offer',
+    description: 'Product / promise clarity',
     ico: '1',
   },
   {
     id: 'beta',
-    label: 'Beta invite',
-    short: 'Beta',
-    description: 'Join the Beta conversion',
+    label: 'Conversion',
+    short: 'Convert',
+    description: 'Primary CTA push',
     ico: 'B',
   },
 ];
@@ -63,7 +63,7 @@ export const AD_OBJECTIVES = [
     id: 'conversion',
     label: 'Conversion',
     short: 'Convert',
-    description: 'Beta / Start Free push',
+    description: 'Primary CTA push',
     ico: 'C',
   },
   {
@@ -77,96 +77,96 @@ export const AD_OBJECTIVES = [
 
 const ANGLE_ROTATION = ['pain', 'field', 'outcome', 'one_app', 'beta', 'pain'];
 
-/** Verbatim / near-verbatim heroes from Taskiz Brand Guide + GTM */
+/** Generic fallback banks — overridden by brand fields in buildAdCopy */
 const BANKS = {
   pain: {
     headlines: [
-      'Stop running your business from five apps',
-      'Paper notes. Midnight invoices. Enough.',
-      'Admin chaos is costing you jobs',
-      'Still juggling texts, notes, and invoices?',
-      'Your business lives in too many places',
+      'Still doing it the hard way?',
+      'The old workflow is costing you',
+      'Enough friction. Time for a better path.',
+      'Something has to change',
+      'Stop fighting your tools',
     ],
     supports: [
-      'Customers, jobs, estimates & invoices — one simple app.',
-      'Less admin. More money-making time.',
-      'Built for the field, not a desk.',
+      'There is a clearer way to work.',
+      'Less chaos. More progress.',
+      'Built for how you actually work.',
     ],
     primary: [
-      'Solo contractors deserve better than sticky notes and late nights.',
-      'If your business runs from five different apps, this is for you.',
+      'If the old process is burning time, this is for you.',
+      'You deserve tools that match the work.',
     ],
   },
   field: {
     headlines: [
-      'Built for the field, not a desk',
-      'Run your business from your phone',
-      'Between jobs. In the truck. On site.',
-      'Business side. Handled from the field.',
-      'Phone out. Business in order.',
+      'Built for real work, not slide decks',
+      'Where the work actually happens',
+      'In the moment. On the ground.',
+      'Context that matches your day',
+      'Show up where it matters',
     ],
     supports: [
-      'Customers, jobs, estimates & invoices from your phone.',
-      'Practical tools — not enterprise bloat.',
-      'Talk or type. Move work forward faster.',
+      'Practical tools for how you already work.',
+      'No enterprise bloat — just the job.',
+      'Move work forward faster.',
     ],
     primary: [
-      'Field-first software for handymen and small GCs.',
-      'Capture the job while it’s still hot — from your phone.',
+      'Designed for people who live in the work.',
+      'Capture the moment before it slips.',
     ],
   },
   outcome: {
     headlines: [
-      'Get paid faster — from your phone',
-      'Professional invoices without the late night',
-      'Stay organized. Move jobs forward.',
-      'Estimates while the lead is still warm',
-      'Look professional without heavy software',
+      'Get the result without the grind',
+      'Finish faster. Look sharper.',
+      'Stay organized. Move forward.',
+      'Outcomes you can feel',
+      'Less thrash. More progress.',
     ],
     supports: [
-      'Clean estimates & invoices — no midnight rebuild.',
-      'One place for customers, schedule & history.',
-      'AI Copilot for admin. You stay in control.',
+      'Clearer outcomes. Less late-night cleanup.',
+      'One place for the work that used to scatter.',
+      'You stay in control.',
     ],
     primary: [
-      'Spend less time managing the business. More time making money.',
-      'Same-day estimates. Faster invoices. From your phone.',
+      'Spend less time managing chaos. More time winning.',
+      'Faster path from problem to done.',
     ],
   },
   one_app: {
     headlines: [
-      'Customers. Jobs. Invoices. One app.',
       'Everything in one place',
-      'One simple app for the business side',
-      'Stop the app hop',
-      'Your contracting business. One home.',
+      'One home for the work',
+      'Stop the tool hop',
+      'Simple. Focused. Yours.',
+      'One clear system',
     ],
     supports: [
-      'Customers · jobs · estimates · invoices — not five apps.',
-      'Simple mobile app for solo contractors.',
-      'Run the business side from your phone.',
+      'Less switching. More shipping.',
+      'Simple tools for serious operators.',
+      'Clarity without the clutter.',
     ],
     primary: [
-      'Taskiz: one mobile app for the work that used to live everywhere else.',
-      'From customer to estimate to job to invoice — without the chaos.',
+      'One place for the work that used to live everywhere else.',
+      'From first touch to finished — without the chaos.',
     ],
   },
   beta: {
     headlines: [
-      'Join the Beta',
-      'Built with contractors like you',
-      'Beta open for field crews',
-      'Come try Taskiz',
-      'Simple app. Real contractors. Beta.',
+      'Get started',
+      'Built with people like you',
+      'Ready when you are',
+      'Come try it',
+      'Simple product. Real operators.',
     ],
     supports: [
-      'Run your contracting business from your phone.',
-      'Built with handymen & small GCs first.',
-      'Practical tools between jobs — not fluffy SaaS.',
+      'Start with the outcome that matters.',
+      'Built with the people who do the work.',
+      'Practical — not fluffy marketing.',
     ],
     primary: [
-      'Join the Beta and run customers, jobs, and invoices from your phone.',
-      'Early access for contractors who want less admin chaos.',
+      'Get started and see the difference.',
+      'Early access for operators who want less chaos.',
     ],
   },
 };
@@ -202,17 +202,16 @@ function resolveAngleId(angleId, index) {
 }
 
 function ctaForObjective(brand, objectiveId, index) {
-  const ctas = brand.ctas?.length ? brand.ctas : [brand.primaryCta || 'Join the Beta'];
+  const ctas = brand.ctas?.length ? brand.ctas : [brand.primaryCta || 'Learn more'];
   const obj = String(objectiveId || 'conversion').toLowerCase();
   if (obj === 'awareness') {
-    return brand.secondaryCta || pick(ctas, 1) || 'See How It Works';
+    return brand.secondaryCta || pick(ctas, 1) || 'Learn more';
   }
   if (obj === 'retarget') {
-    return brand.primaryCta || pick(ctas, 0) || 'Join the Beta';
+    return brand.primaryCta || pick(ctas, 0) || 'Learn more';
   }
-  // conversion — prefer Join the Beta / Start Free
-  const preferred = ctas.find((c) => /beta|start free|get started/i.test(c));
-  return preferred || brand.primaryCta || pick(ctas, index);
+  const preferred = ctas.find((c) => /start|get|join|try|book|buy|demo/i.test(c));
+  return preferred || brand.primaryCta || pick(ctas, index) || 'Learn more';
 }
 
 /**
@@ -227,10 +226,19 @@ export function buildAdCopy(opts = {}) {
   const objectiveId = String(opts.objectiveId || opts.objective || 'conversion').toLowerCase();
   const campaign = String(opts.campaign || opts.prompt || '').trim();
 
-  let headline = scrubDoNotSay(pick(bank.headlines, index), brand.doNotSay);
-  // On-ad support stays short brand lines — never paste campaign/plate brief onto creative
-  let support = scrubDoNotSay(pick(bank.supports, index), brand.doNotSay);
-  let primaryText = scrubDoNotSay(pick(bank.primary, index), brand.doNotSay);
+  // Prefer Brand OS truth over generic banks
+  let headline = scrubDoNotSay(
+    brand.oneLiner || pick(bank.headlines, index),
+    brand.doNotSay
+  );
+  let support = scrubDoNotSay(
+    brand.promise || brand.supporting || pick(bank.supports, index),
+    brand.doNotSay
+  );
+  let primaryText = scrubDoNotSay(
+    brand.supporting || brand.promise || pick(bank.primary, index),
+    brand.doNotSay
+  );
 
   // Campaign only steers Meta/caption primary text lightly — not the designed support line
   if (campaign) {
@@ -246,15 +254,17 @@ export function buildAdCopy(opts = {}) {
     support = support.slice(0, 87).replace(/\s+\S*$/, '') + '…';
   }
 
-  // Awareness: softer CTA framing; conversion: punchy headline can be beta
   if (objectiveId === 'beta' || angleId === 'beta') {
-    headline = scrubDoNotSay(pick(BANKS.beta.headlines, index), brand.doNotSay);
+    headline = scrubDoNotSay(
+      brand.primaryCta || brand.oneLiner || pick(BANKS.beta.headlines, index),
+      brand.doNotSay
+    );
   }
 
   const cta =
     scrubDoNotSay(opts.cta || ctaForObjective(brand, objectiveId, index), brand.doNotSay) ||
     brand.primaryCta ||
-    'Join the Beta';
+    'Learn more';
 
   // Meta-ish short headline (under ~40 recommended)
   const shortHeadline =
@@ -272,7 +282,7 @@ export function buildAdCopy(opts = {}) {
     cta,
     oneLiner: brand.oneLiner,
     brandName: brand.name,
-    website: brand.website || 'https://taskiz.ai',
+    website: brand.website || '',
   };
 }
 

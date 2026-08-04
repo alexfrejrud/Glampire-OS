@@ -698,7 +698,7 @@ export function OnboardingWizard({
                         label="Client / brand name"
                         value={answers.identity.name}
                         onChange={(v) => patchAnswer('identity', 'name', v)}
-                        placeholder="Taskiz"
+                        placeholder="Acme Co"
                         isRequired
                         hasAutoFocus
                         width="100%"
@@ -707,7 +707,7 @@ export function OnboardingWizard({
                         label="Website"
                         value={answers.identity.website}
                         onChange={(v) => patchAnswer('identity', 'website', v)}
-                        placeholder="https://taskiz.ai"
+                        placeholder="https://example.com"
                         description="We scrape this during research to extract messaging."
                         isOptional
                         width="100%"
@@ -716,14 +716,14 @@ export function OnboardingWizard({
                         label="Category"
                         value={answers.identity.category}
                         onChange={(v) => patchAnswer('identity', 'category', v)}
-                        placeholder="Mobile business app for contractors"
+                        placeholder="e.g. B2B SaaS · consumer app · local services"
                         width="100%"
                     />
                     <TextInput
                         label="One-liner"
                         value={answers.identity.oneLiner}
                         onChange={(v) => patchAnswer('identity', 'oneLiner', v)}
-                        placeholder="Run your contracting business from your phone."
+                        placeholder="What they promise in one sentence."
                         width="100%"
                     />
                 </VStack>
@@ -754,7 +754,7 @@ export function OnboardingWizard({
                         value={answers.offer.keyFeatures}
                         onChange={(v) => patchAnswer('offer', 'keyFeatures', v)}
                         description="One per line."
-                        placeholder={'Voice job logging\nInvoice from the phone\n…'}
+                        placeholder={'Feature one\nFeature two\nFeature three'}
                         rows={5}
                         width="100%"
                     />
@@ -778,7 +778,7 @@ export function OnboardingWizard({
                         value={answers.icp.primary}
                         onChange={(v) => patchAnswer('icp', 'primary', v)}
                         description="Who we write for first. One per line."
-                        placeholder={'Solo handyman businesses\nSmall general contractors'}
+                        placeholder={'Primary buyer segment\nSecondary buyer segment'}
                         rows={3}
                         isRequired
                         width="100%"
@@ -787,7 +787,7 @@ export function OnboardingWizard({
                         label="Secondary ICP"
                         value={answers.icp.secondary}
                         onChange={(v) => patchAnswer('icp', 'secondary', v)}
-                        placeholder={'Painters\nRemodelers'}
+                        placeholder={'Adjacent segment A\nAdjacent segment B'}
                         rows={2}
                         isOptional
                         width="100%"
@@ -796,7 +796,7 @@ export function OnboardingWizard({
                         label="Later / not yet"
                         value={answers.icp.later}
                         onChange={(v) => patchAnswer('icp', 'later', v)}
-                        placeholder={'Electricians\nPlumbers\nHVAC'}
+                        placeholder={'Segment to ignore for now'}
                         rows={2}
                         isOptional
                         width="100%"
@@ -805,7 +805,7 @@ export function OnboardingWizard({
                         label="Exclusions (who not to target)"
                         value={answers.icp.exclusions}
                         onChange={(v) => patchAnswer('icp', 'exclusions', v)}
-                        placeholder={'Enterprise facility managers\nOffice-bound admins'}
+                        placeholder={'Wrong-fit buyers\nMarkets you are not ready for'}
                         rows={2}
                         isOptional
                         width="100%"
@@ -821,7 +821,7 @@ export function OnboardingWizard({
                         label="Competitors & adjacent tools"
                         value={answers.market.competitors}
                         onChange={(v) => patchAnswer('market', 'competitors', v)}
-                        placeholder={'Jobber\nHousecall Pro\nServiceTitan'}
+                        placeholder={'Competitor A\nCompetitor B\nAdjacent tool'}
                         description="One per line."
                         rows={4}
                         width="100%"
@@ -830,7 +830,7 @@ export function OnboardingWizard({
                         label="Relevant communities"
                         value={answers.market.communities}
                         onChange={(v) => patchAnswer('market', 'communities', v)}
-                        placeholder={'r/Contractors\nContractor Talk forum'}
+                        placeholder={'Industry forums\nSocial groups\nNewsletters'}
                         rows={3}
                         isOptional
                         width="100%"
@@ -839,7 +839,7 @@ export function OnboardingWizard({
                         label="Proof sources"
                         value={answers.market.proofSources}
                         onChange={(v) => patchAnswer('market', 'proofSources', v)}
-                        placeholder={'Beta waitlist\nFounder quotes\nApp store reviews'}
+                        placeholder={'Testimonials\nCase studies\nReviews'}
                         rows={3}
                         isOptional
                         width="100%"
@@ -862,7 +862,7 @@ export function OnboardingWizard({
                         value={answers.voice.doNotSay}
                         onChange={(v) => patchAnswer('voice', 'doNotSay', v)}
                         description="Claims, phrases, or category words to ban. One per line."
-                        placeholder={'AI phone receptionist\nnever miss a call\nAI employee'}
+                        placeholder={'Phrase we never use\nOverclaim to avoid\nWrong category word'}
                         rows={5}
                         width="100%"
                     />
@@ -870,7 +870,7 @@ export function OnboardingWizard({
                         label="Claims we cannot make yet"
                         value={answers.voice.claimsWeCantMake}
                         onChange={(v) => patchAnswer('voice', 'claimsWeCantMake', v)}
-                        placeholder={'full field service management platform\nSMS and email inbox'}
+                        placeholder={'Feature not live yet\nMarket claim without proof'}
                         rows={3}
                         isOptional
                         width="100%"
@@ -887,14 +887,14 @@ export function OnboardingWizard({
                             label="Brand color"
                             value={answers.brandkit.brandColor}
                             onChange={(v) => patchAnswer('brandkit', 'brandColor', v)}
-                            placeholder="#9563FF"
+                            placeholder="#111111"
                             width={200}
                         />
                         <TextInput
                             label="Accent color"
                             value={answers.brandkit.accentColor}
                             onChange={(v) => patchAnswer('brandkit', 'accentColor', v)}
-                            placeholder="#ED81FF"
+                            placeholder="#737373"
                             width={200}
                         />
                     </HStack>
@@ -1002,7 +1002,7 @@ export function OnboardingWizard({
                         label="Upload-Post profile user"
                         value={answers.channels.uploadPostUser}
                         onChange={(v) => patchAnswer('channels', 'uploadPostUser', v)}
-                        placeholder="TASKIZ"
+                        placeholder="CLIENTPROFILE"
                         description="Must match an Upload-Post username if you publish from the studio."
                         isOptional
                         width="100%"

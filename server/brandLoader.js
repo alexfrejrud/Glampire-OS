@@ -24,7 +24,7 @@ const ACTIVE_STATE_PATH = path.join(__dirname, 'data', 'active-workspace.json');
 /** Per-request workspace context (Express middleware sets this). */
 export const workspaceContext = new AsyncLocalStorage();
 
-let fallbackActiveId = loadPersistedActiveId() || 'taskiz';
+let fallbackActiveId = loadPersistedActiveId() || null;
 
 function loadPersistedActiveId() {
     try {
@@ -114,7 +114,7 @@ export function getActiveWorkspaceId() {
     if (fromCtx && workspaceExists(fromCtx)) return fromCtx;
     if (fallbackActiveId && workspaceExists(fallbackActiveId)) return fallbackActiveId;
     const all = listWorkspaces();
-    return all[0]?.id || 'taskiz';
+    return all[0]?.id || null;
 }
 
 export function setActiveWorkspace(id) {
@@ -359,4 +359,40 @@ export function createWorkspace({ id, name, oneLiner = '', category = '' }) {
     });
 
     return getWorkspacePublic(safe);
+}
+
+/**
+ * Resolve logo for the active (or given) workspace only.
+ * Never falls back to another client's assets — Glampire OS is multi-client.
+ */
+export function resolveWorkspaceLogoPath(id = getActiveWorkspaceId()) {
+    if (!id || !workspaceExists(id)) return null;
+    const dir = getWorkspaceDir(id);
+    const assetsDir = path.join(dir, 'assets');
+    const candidates = [];
+    try {
+        if (fs.existsSync(assetsDir)) {
+            const files = fs.readdirSync(assetsDir);
+            for (const f of files) {
+                if (/\.(svg|png|webp|jpg|jpeg)$/i.test(f)) {
+                    // Prefer names that look like logos
+                    const p = path.join(assetsDir, f);
+                    if (/logo/i.test(f)) candidates.unshift(p);
+                    else candidates.push(p);
+                }
+            }
+            // onboarding logo path
+            const onboard = path.join(assetsDir, 'onboarding');
+            if (fs.existsSync(onboard)) {
+                for (const f of fs.readdirSync(onboard)) {
+                    if (/\.(svg|png|webp|jpg|jpeg)$/i.test(f) && /logo/i.test(f)) {
+                        candidates.unshift(path.join(onboard, f));
+                    }
+                }
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    return candidates.find((p) => fs.existsSync(p)) || null;
 }

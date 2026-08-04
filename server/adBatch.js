@@ -30,14 +30,14 @@ export const AD_COUNTS = [
   { id: '8', label: '8 ads', short: '8', description: 'Solid batch', ico: '8' },
 ];
 
-/** Default campaign when operator leaves brief empty but picks angle */
+/** Default campaign scenes when operator leaves brief empty — brand-agnostic */
 const DEFAULT_CAMPAIGNS = {
-  pain: 'solo contractor overwhelmed by paper notes texts and late invoices at the kitchen table',
-  field: 'owner-operator contractor on residential jobsite checking phone between tasks',
-  outcome: 'contractor sending a clean invoice from phone in the truck after a job',
-  one_app: 'handyman finally using one phone app for customers jobs and estimates',
-  beta: 'small general contractor inviting peers to try a simple mobile business app',
-  auto: 'authentic US contractor running the business side from a phone in the field',
+  pain: 'authentic person mid-friction with an old broken workflow, natural light, documentary commercial',
+  field: 'authentic person in a real work context using a phone as a tool, natural light',
+  outcome: 'authentic person in a calm after-success moment, clean composition, natural light',
+  one_app: 'authentic person with one clear tool replacing a messy setup, lifestyle commercial',
+  beta: 'authentic person inviting a peer to try something better, warm candid energy',
+  auto: 'authentic documentary commercial subject in a real-world brand-relevant moment',
 };
 
 function pickAspect(id) {

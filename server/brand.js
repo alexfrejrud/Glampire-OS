@@ -10,13 +10,13 @@ import {
   loadContentMeta,
 } from './brandLoader.js';
 
-/** @deprecated Use getBrand() — kept for scripts that imported defaultBrand */
-export const defaultBrand = loadBrand('taskiz');
-
 /** Live brand for the active workspace (AsyncLocalStorage or persisted active). */
 export function getBrand() {
   return loadBrand();
 }
+
+/** @deprecated Use getBrand() — never hardcode a client; loads active workspace only */
+export const defaultBrand = getBrand();
 
 /** Mutable export for legacy callers — prefer getBrand() */
 export let brand = getBrand();
@@ -38,31 +38,32 @@ export function resetBrandOverrides() {
   return next;
 }
 
+/** Generic pillar defaults when a workspace has no content.json pillars yet */
 export const pillars = {
   pain: {
     id: 'pain',
-    label: 'Contractor pain',
-    description: 'Scattered tools, late invoices, lost notes',
+    label: 'Pain',
+    description: 'Core friction the customer feels before the product',
   },
   demo: {
     id: 'demo',
     label: 'Product demo',
-    description: 'Customer → estimate → job → invoice',
+    description: 'Product or service in action',
   },
   before_after: {
     id: 'before_after',
     label: 'Before / after',
-    description: 'Chaos vs organized with Taskiz',
+    description: 'Life without vs with the brand',
   },
   education: {
     id: 'education',
     label: 'Education',
-    description: 'What solo contractors should track',
+    description: 'Practical tips the ICP should know',
   },
   trust: {
     id: 'trust',
-    label: 'Trust & launch',
-    description: 'Beta, founder notes, social proof',
+    label: 'Trust & proof',
+    description: 'Social proof, launch honesty, fit',
   },
 };
 
@@ -125,7 +126,7 @@ export function buildImagePrompt(idea, { styleId } = {}) {
     idea.styleFraming ? `Framing: ${idea.styleFraming}.` : '',
     idea.styleSubjectRules ? `Subject rules: ${idea.styleSubjectRules}.` : '',
     `Composition: ${b.compositionNotes}`,
-    `Color grade: ${idea.styleColorGrade || `natural daylight with subtle cool-violet undertones inspired by brand palette (violet ${c.brand || '#9563FF'}, deep ${c.dark || '#141233'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
+    `Color grade: ${idea.styleColorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
     `Aspect: ${formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1'} framing.`,
     `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}.`,
     `Output must be a clean photo plate only — typography and logo will be added later in HyperFrames / design overlay.`,
@@ -166,15 +167,15 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
   if (talkFraming && dialogue) {
     return [
       styleBlock ||
-      'Authentic vertical UGC talking-head. Contractor faces camera mid-conversation.',
+      'Authentic vertical UGC talking-head. Subject faces camera mid-conversation.',
       motion ? `Performance: ${motion}.` : '',
       roleHint,
       brief
         ? `Casting / performance brief for this batch: ${brief}. Match subject identity and energy.`
         : '',
       wantNativeSpeech
-        ? `DIALOGUE (speak this line clearly as the contractor, first person): "${dialogue}" Lip sync + native speech audio.`
-        : `The contractor is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
+        ? `DIALOGUE (speak this line clearly in first person as the on-camera subject): "${dialogue}" Lip sync + native speech audio.`
+        : `The subject is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
       'Eye contact with the lens. Peer-to-peer energy — not a radio announcer.',
       'No text, logos, captions, title cards, or UI burned into the video.',
       `Negatives: ${b.imageNegatives}. No silent staring at phone as the main action.`,
@@ -212,11 +213,17 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
 
 export function brandSystemNote() {
   const b = getBrand();
-  return `You write marketing content for ${b.name}, a simple mobile business app for solo contractors.
-Primary message: "${b.oneLiner}"
-Never claim: ${b.doNotSay.join('; ')}.
-Tone: practical, field-first, honest. Avoid fluffy SaaS jargon.
-CTA options: ${b.ctas.join(', ')}.`;
+  const category = b.category || 'brand';
+  const tone = b.voice || 'practical, honest, specific — not fluffy marketing jargon';
+  const doNot = (b.doNotSay || []).join('; ') || '(none listed)';
+  const ctas = (b.ctas || []).join(', ') || b.primaryCta || 'Learn more';
+  return `You write marketing content for ${b.name} (${category}).
+Primary message: "${b.oneLiner || b.promise || ''}"
+Supporting: ${b.supporting || b.promise || ''}
+Never claim / avoid: ${doNot}.
+Tone: ${tone}.
+CTA options: ${ctas}.
+ICP primary: ${(b.icp?.primary || []).join(', ') || 'see brand kit'}.`;
 }
 
 export function getBrandPublic() {

@@ -119,10 +119,33 @@
     aspect-ratio: 1;
   }
 
+  /* Match export aspect so type/CTA are never cropped in the queue */
+  .media-frame.ratio-11 {
+    aspect-ratio: 1 / 1;
+  }
+  .media-frame.ratio-34 {
+    aspect-ratio: 3 / 4;
+  }
+  .media-frame.ratio-45 {
+    aspect-ratio: 4 / 5;
+  }
+  .media-frame.ratio-23 {
+    aspect-ratio: 2 / 3;
+  }
+  .media-frame.ratio-169 {
+    aspect-ratio: 16 / 9;
+  }
+  .media-frame.ratio-32 {
+    aspect-ratio: 3 / 2;
+  }
+  .media-frame.ratio-43 {
+    aspect-ratio: 4 / 3;
+  }
+
   .media-frame.ratio-916 {
     aspect-ratio: 9 / 16;
-    max-height: 320px;
-    width: min(100%, 200px);
+    max-height: 360px;
+    width: min(100%, 220px);
     margin-inline: auto;
   }
 
@@ -130,8 +153,16 @@
   .media-frame video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* contain = full ad visible (type + CTA). cover was cropping 3:4 ads in 1:1 frames */
+    object-fit: contain;
     display: block;
+    background: var(--color-background-muted, #1a1d24);
+  }
+
+  /* Reels still use cover for a filled frame */
+  .media-frame.ratio-916 img,
+  .media-frame.ratio-916 video {
+    object-fit: cover;
   }
 
   .media-frame.empty {

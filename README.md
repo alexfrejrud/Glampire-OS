@@ -36,7 +36,8 @@ Each client lives under `clients/<id>/`:
 | `brand.draft.json` / `content.draft.json` | Pre-lock Brand Brain |
 | `assets/` | Logo, screens, refs |
 
-Taskiz ships as the first **ready** workspace: `clients/taskiz/`.
+Client workspaces live under `clients/<id>/` (e.g. any onboarded brand).  
+**Glampire OS** is the platform chrome — never a client brand.
 
 ### New client onboarding
 

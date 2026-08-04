@@ -43,7 +43,7 @@ export function estimateVoiceSec(text) {
  * Direct address, contractor peer tone — not brochure.
  */
 function defaultVoiceForRole(role, idea = {}) {
-    const cta = idea.cta || 'Join the Beta';
+    const cta = idea.cta || 'Learn more';
     if (role === 'hook') {
         return (
             idea.voiceHook ||
@@ -155,7 +155,7 @@ export function buildStoryScript(item) {
     return {
         beats,
         fullNarration,
-        cta: item.cta || 'Join the Beta',
+        cta: item.cta || 'Learn more',
         style: 'peer_ugc', // direct address, not announcer
         estimatedVoSec: beats.reduce((s, b) => s + (b.voiceSec || 0), 0),
     };

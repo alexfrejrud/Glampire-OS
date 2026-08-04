@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url';
 import { Resvg } from '@resvg/resvg-js';
 import { synthesizeLine, hasElevenLabs, pickVoice } from './elevenLabs.js';
 import { getBrand } from './brand.js';
+import { resolveWorkspaceLogoPath } from './brandLoader.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const W = 1080;
@@ -140,13 +141,7 @@ function renderSvgToPng(svg, fonts, outPath) {
 }
 
 function loadBrandLogoDataUri({ color = '#FFFFFF' } = {}) {
-    const candidates = [
-        path.join(__dirname, '../clients/taskiz/assets/taskiz-logo.svg'),
-        path.join(__dirname, '../clients/taskiz/assets/Logo.svg'),
-        path.join(__dirname, '../public/assets/taskiz-logo.svg'),
-        path.join(__dirname, '../Brand/Brand Logo/Logo.svg'),
-    ];
-    const logoPath = candidates.find((p) => fs.existsSync(p));
+    const logoPath = resolveWorkspaceLogoPath();
     if (!logoPath) return null;
     let svg = fs.readFileSync(logoPath, 'utf8');
     svg = svg
@@ -161,10 +156,10 @@ function loadBrandLogoDataUri({ color = '#FFFFFF' } = {}) {
 }
 
 function ctaSvg(brand) {
-    const cta = brand.primaryCta || 'Join the Beta';
-    const one = brand.oneLiner || 'Run your contracting business from your phone.';
-    const name = brand.name || 'Taskiz';
-    const brandPurple = brand?.colors?.brand || '#9563FF';
+    const cta = brand.primaryCta || 'Learn more';
+    const one = brand.oneLiner || brand.promise || '';
+    const name = brand.name || 'Brand';
+    const brandPurple = brand?.colors?.brand || '#111111';
     const logoUri = loadBrandLogoDataUri({ color: '#FFFFFF' });
     const logoW = 454;
     const logoH = 118;
@@ -191,6 +186,7 @@ function ctaSvg(brand) {
 /** Small centered top wordmark for talking-head reels. */
 function cornerLogoSvg() {
     const logoUri = loadBrandLogoDataUri({ color: '#FFFFFF' });
+    const brandName = (getBrand()?.name || 'BRAND').toUpperCase().slice(0, 18);
     const logoW = 196;
     const logoH = 51;
     const logoX = Math.round((W - logoW) / 2);
@@ -199,7 +195,7 @@ function cornerLogoSvg() {
         return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <text font-family="Outfit, Arial, Helvetica, sans-serif" font-size="28" font-weight="700"
-        x="540" y="110" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.92" letter-spacing="1.5">TASKIZ</text>
+        x="540" y="110" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.92" letter-spacing="1.5">${brandName}</text>
 </svg>`;
     }
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -375,7 +371,7 @@ export async function composeCleanStory({
         if (i === dialogues.length - 1) end = Math.min(end, ctaStart);
         capLayers.push({ png, start, end, text });
     }
-    // CTA with official Taskiz logo (not fake caps text)
+    // CTA with workspace logo (not fake caps text)
     const ctaPng = path.join(capDir, 'cta.png');
     renderSvgToPng(ctaSvg({ ...brand, primaryCta: cta || brand.primaryCta }), fonts, ctaPng);
 
@@ -436,6 +432,7 @@ export async function composeCleanStory({
     report.steps.push({ captions: capLayers.map((l) => ({ text: l.text, start: l.start, end: l.end })) });
 
     // ── 5) Mix: VO only + soft bed (never plate audio) ───────────────
+    // Shared ambient bed asset (filename is legacy; not client-specific copy)
     const bedSrc = path.join(__dirname, 'data', 'audio', 'taskiz-ambient-bed.m4a');
     let bedPath = bedSrc;
     if (!fs.existsSync(bedPath)) {
@@ -539,7 +536,7 @@ if (isMain) {
     const dialogues = [
         'I used to wait until midnight to send invoices. Every night.',
         "Job's done at four… then I'm still at the kitchen table doing the books.",
-        'Now I invoice before I leave the driveway. Taskiz — join the beta.',
+        'That used to take all night. Now I finish before I leave.',
     ];
     composeCleanStory({ beatVideos, dialogues, id })
         .then((r) => {

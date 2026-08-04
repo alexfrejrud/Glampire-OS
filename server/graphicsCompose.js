@@ -10,10 +10,10 @@
  *  2. @resvg/resvg-js → transparent PNG 1080×1920
  *  3. ffmpeg overlay with enable=between(t,start,end)
  *
- * Design rules (Taskiz / Glampire):
+ * Design rules (Glampire OS · per-workspace Brand OS):
  *  - Outfit for type (not system Arial)
- *  - Real Taskiz wordmark logo on end card (not fake "TASKIZ" caps text)
- *  - No full-frame purple brand wash — dark neutral scrim only; brand color as thin accent
+ *  - Active workspace wordmark on end card (never another client's logo)
+ *  - No full-frame brand wash — dark neutral scrim only; brand color as thin accent
  */
 
 import fs from 'fs';
@@ -22,6 +22,7 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { Resvg } from '@resvg/resvg-js';
 import { getBrand } from './brand.js';
+import { resolveWorkspaceLogoPath } from './brandLoader.js';
 import { getVideoStyle } from './videoStyles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,7 +39,7 @@ const SCRIM = '#0B0B0C';
  *
  *  organic     — captions only (default for TikTok/IG organic volume)
  *  ads         — captions only, same plate as organic (use platform CTA / caption)
- *  ads_endcard — captions + Taskiz logo end card (paid / conversion cuts)
+ *  ads_endcard — captions + workspace logo end card (paid / conversion cuts)
  *  ads_full    — captions + corner logo + end card (max brand recall)
  */
 export const BRAND_CHROME_MODES = {
@@ -59,7 +60,7 @@ export const BRAND_CHROME_MODES = {
     ads_endcard: {
         id: 'ads_endcard',
         label: 'Ads + end card',
-        description: 'Captions + official logo end card (Join the Beta). For paid boosts.',
+        description: 'Captions + official logo end card. For paid boosts.',
         cornerLogo: false,
         endCard: true,
     },
@@ -171,26 +172,19 @@ function brandTokens(brand) {
         brandInk: c.dark || '#141233',
         ink: c.ink || '#000000',
         surface: c.surface || '#F7F7F7',
-        name: brand?.name || 'Taskiz',
-        oneLiner: brand?.oneLiner || 'Run your contracting business from your phone.',
-        website: brand?.website || 'https://taskiz.ai',
+        name: brand?.name || 'Brand',
+        oneLiner: brand?.oneLiner || brand?.promise || '',
+        website: brand?.website || '',
     };
 }
 
-/** Resolve official Taskiz logo path (workspace → public → Brand kit). */
+/** Active workspace logo only. */
 function resolveLogoPath() {
-    const candidates = [
-        path.join(__dirname, '../clients/taskiz/assets/taskiz-logo.svg'),
-        path.join(__dirname, '../clients/taskiz/assets/Logo.svg'),
-        path.join(__dirname, '../public/assets/taskiz-logo.svg'),
-        path.join(__dirname, '../Brand/Brand Logo/Logo.svg'),
-    ];
-    return candidates.find((p) => fs.existsSync(p)) || null;
+    return resolveWorkspaceLogoPath();
 }
 
 /**
- * Load Taskiz logo as data-URI, recolored for light or dark plate.
- * Official mark is black on transparent — recolor to white for end cards.
+ * Load workspace logo as data-URI, recolored for light or dark plate.
  */
 function loadBrandLogoDataUri({ color = '#FFFFFF' } = {}) {
     const logoPath = resolveLogoPath();
@@ -221,7 +215,7 @@ function outfitFontFiles() {
  * Full spoken line for on-screen caption.
  * Does NOT truncate mid-sentence — missing words was a critical bug.
  * Only strips a trailing "Join the beta" when the end card will say it.
- * Keeps brand name ("Taskiz") and every other sentence.
+ * Keeps brand name and every other sentence.
  */
 export function captionFromDialogue(raw, { role = 'hook', stripTrailingCta = true } = {}) {
     let t = String(raw || '')
@@ -982,7 +976,7 @@ function svgCornerLogo({ opacity = 0.92 } = {}) {
         return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <text x="540" y="110" font-family="${FONT_FAMILY}" font-size="28" font-weight="700"
-        fill="#FFFFFF" fill-opacity="${opacity}" text-anchor="middle" letter-spacing="1.5">TASKIZ</text>
+        fill="#FFFFFF" fill-opacity="${opacity}" text-anchor="middle" letter-spacing="1.5">${escapeXml((getBrand()?.name || 'BRAND').toUpperCase().slice(0, 18))}</text>
 </svg>`;
     }
 
@@ -1025,7 +1019,7 @@ function svgCtaEnd({ cta, tokens, brandName, oneLiner, website }) {
         ? `<image href="${logoUri}" x="${logoX}" y="${logoY}" width="${logoW}" height="${logoH}"
              preserveAspectRatio="xMidYMid meet"/>`
         : `<text x="540" y="${logoY + 72}" font-family="${FONT_FAMILY}" font-size="52" font-weight="700"
-             fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.5">${escapeXml(brandName || 'Taskiz')}</text>`;
+             fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.5">${escapeXml(brandName || getBrand()?.name || 'Brand')}</text>`;
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -1047,7 +1041,7 @@ function svgCtaEnd({ cta, tokens, brandName, oneLiner, website }) {
 
   <text x="540" y="980" font-family="${FONT_FAMILY}" font-size="58" font-weight="700"
         fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.8" filter="url(#endShadow)">
-    ${escapeXml(cta || 'Join the Beta')}
+    ${escapeXml(cta || getBrand()?.primaryCta || 'Learn more')}
   </text>
   <!-- Thin brand accent only under CTA -->
   <rect x="430" y="1010" width="220" height="4" rx="2" fill="${tokens.brand}" fill-opacity="0.95"/>
@@ -1204,7 +1198,7 @@ export function buildStoryGraphics({
         if (!captionText) {
             captionText =
                 String(dialogue || keyword || beat.title || beat.headline || '').trim() ||
-                (beat.role === 'resolve' ? cta || brand.primaryCta || 'Join the Beta' : '…');
+                (beat.role === 'resolve' ? cta || brand.primaryCta || 'Learn more' : '…');
         }
 
         // Safety: if dialogue somehow shorter than keyword-only, still show something full
@@ -1341,7 +1335,7 @@ export function buildStoryGraphics({
             }
         }
         const svg = svgCtaEnd({
-            cta: cta || brand.primaryCta || 'Join the Beta',
+            cta: cta || brand.primaryCta || 'Learn more',
             tokens,
             brandName: brand.name,
             oneLiner: brand.oneLiner,
