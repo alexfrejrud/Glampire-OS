@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create composer — vision preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c0c0c;
+        --bg-elev: #141414;
+        --bg-chip: #1c1c1c;
+        --bg-chip-hover: #242424;
+        --bg-chip-on: #f2f2f2;
+        --text: #f2f2f2;
+        --text-dim: #8a8a8a;
+        --text-on: #111;
+        --line: #2a2a2a;
+        --line-soft: #222;
+        --radius-bar: 28px;
+        --radius-chip: 999px;
+        --font: "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Fake studio chrome (minimal) */
+      .chrome {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--text-dim);
+        font-size: 13px;
+      }
+
+      .chrome strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .canvas {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 20px 80px;
+        gap: 28px;
+      }
+
+      .hero {
+        text-align: center;
+        max-width: 480px;
+      }
+
+      .hero .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin: 0 0 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+
+      .hero p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-dim);
+      }
+
+      /* Mode switch */
+      .mode-switch {
+        display: inline-flex;
+        padding: 3px;
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-chip);
+        gap: 2px;
+      }
+
+      .mode-switch button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--text-dim);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 8px 18px;
+        border-radius: var(--radius-chip);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+
+      .mode-switch button:hover {
+        color: var(--text);
+      }
+
+      .mode-switch button.on {
+        background: var(--bg-chip-on);
+        color: var(--text-on);
+      }
+
+      /* Composer bar */
+      .composer-wrap {
+        width: min(720px, 100%);
+      }
+
+      .composer {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-bar);
+        padding: 12px 12px 12px 18px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+
+      .composer:focus-within {
+        border-color: #555;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px #444;
+      }
+
+      .composer-main {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+      }
+
+      .field {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .field label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 6px;
+      }
+
+      .field textarea,
+      .field .auto-placeholder {
+        width: 100%;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 15px;
+        line-height: 1.4;
+        resize: none;
+        min-height: 28px;
+        max-height: 120px;
+        padding: 0;
+      }
+
+      .field textarea::placeholder {
+        color: #555;
+      }
+
+      .auto-placeholder {
+        color: var(--text-dim);
+        padding: 2px 0 6px;
+      }
+
+      .auto-placeholder strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .submit {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 0;
+        background: var(--bg-chip-on);
+        color: var(--text-on);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: opacity 0.15s, transform 0.1s;
+      }
+
+      .submit:hover {
+        opacity: 0.92;
+      }
+
+      .submit:active {
+        transform: scale(0.97);
+      }
+
+      .submit:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .submit svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Chips row */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 4px;
+      }
+
+      .chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--bg-chip);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 7px 12px;
+        border-radius: var(--radius-chip);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.12s, border-color 0.12s;
+        position: relative;
+      }
+
+      .chip:hover {
+        background: var(--bg-chip-hover);
+        border-color: #3a3a3a;
+      }
+
+      .chip .caret {
+        opacity: 0.5;
+        font-size: 10px;
+      }
+
+      .chip.muted {
+        color: var(--text-dim);
+      }
+
+      /* Popovers — Krea-style dense list modal */
+      .pop {
+        display: none;
+        position: absolute;
+        left: 0;
+        bottom: calc(100% + 10px);
+        width: min(300px, calc(100vw - 32px));
+        background: #1b1b1b;
+        border: 1px solid #2e2e2e;
+        border-radius: 16px;
+        padding: 8px;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.03),
+          0 20px 60px rgba(0, 0, 0, 0.55);
+        z-index: 30;
+        text-align: left;
+      }
+
+      .chip.open .pop {
+        display: block;
+      }
+
+      .pop-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px 10px;
+        border-bottom: 1px solid #2a2a2a;
+        margin-bottom: 6px;
+      }
+
+      .pop-head .pop-title {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #777;
+      }
+
+      .pop-section {
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+        padding: 10px 10px 4px;
+        letter-spacing: 0.02em;
+      }
+
+      .pop-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 320px;
+        overflow-y: auto;
+      }
+
+      .pop-option {
+        appearance: none;
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        padding: 10px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+
+      .pop-option:hover {
+        background: #262626;
+      }
+
+      .pop-option.on {
+        background: #2a2a2a;
+      }
+
+      .pop-option .ico {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: #2a2a2a;
+        border: 1px solid #333;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #bbb;
+        margin-top: 1px;
+      }
+
+      .pop-option.on .ico {
+        background: #f2f2f2;
+        color: #111;
+        border-color: #f2f2f2;
+      }
+
+      .pop-option .body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .pop-option .name {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #f0f0f0;
+        line-height: 1.25;
+      }
+
+      .pop-option .desc {
+        display: block;
+        font-size: 12px;
+        font-weight: 400;
+        color: #888;
+        line-height: 1.35;
+        margin-top: 2px;
+      }
+
+      .pop-option .check {
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        margin-top: 4px;
+        opacity: 0;
+        color: #f2f2f2;
+      }
+
+      .pop-option.on .check {
+        opacity: 1;
+      }
+
+      .pop-option .check svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* legacy class used in JS selectors — map to new structure */
+      .pop button.opt-legacy {
+        display: none;
+      }
+
+      /* Advanced toggle */
+      .advanced-toggle {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--text-dim);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        margin-left: auto;
+        padding: 6px 4px;
+      }
+
+      .advanced-toggle:hover {
+        color: var(--text);
+      }
+
+      .advanced {
+        display: none;
+        width: min(720px, 100%);
+        margin-top: -8px;
+        padding: 16px 18px;
+        border: 1px dashed var(--line);
+        border-radius: 16px;
+        color: var(--text-dim);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .advanced.show {
+        display: block;
+      }
+
+      .advanced code {
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      /* Footer note */
+      .note {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        color: #555;
+        text-align: center;
+        max-width: 90%;
+      }
+
+      .preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #666;
+        border: 1px solid #333;
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Result mock */
+      .result {
+        width: min(720px, 100%);
+        display: none;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #121212;
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+
+      .result.show {
+        display: block;
+      }
+
+      .result strong {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chrome">
+      <span><strong>Glampire OS</strong> · Create · vision preview</span>
+      <span class="preview-badge">HTML only · not wired</span>
+    </div>
+
+    <div class="canvas">
+      <div class="hero">
+        <p class="eyebrow">Taskiz workspace</p>
+        <h1>Generate content</h1>
+        <p>
+          Auto runs the factory on brand defaults. Prompt steers casting, vibe, and angle for this
+          batch only.
+        </p>
+      </div>
+
+      <div class="mode-switch" role="tablist" aria-label="Batch mode">
+        <button type="button" class="on" data-mode="auto" id="modeAuto">Auto</button>
+        <button type="button" data-mode="prompt" id="modePrompt">Prompt</button>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer" id="composer">
+          <div class="composer-main">
+            <div class="field">
+              <label id="fieldLabel">Auto mode</label>
+              <div class="auto-placeholder" id="autoField">
+                Ready to generate from Brand OS · <strong>Story reels</strong> · Grok · Organic
+              </div>
+              <textarea
+                id="promptField"
+                class="hidden"
+                rows="2"
+                placeholder="Steer this batch… e.g. Mexican American solo GCs, San Antonio driveways, tired-but-hopeful, invoicing pain"
+              ></textarea>
+            </div>
+            <button type="button" class="submit" id="submit" title="Generate ideas" aria-label="Generate ideas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="chips">
+            <!-- Pack -->
+            <button type="button" class="chip" id="chipPack" data-chip="pack">
+              <span class="chip-value">Story reels</span>
+              <span class="caret">▾</span>
+              <div class="pop" role="listbox" aria-label="Content pack">
+                <div class="pop-head">
+                  <span class="pop-title">Content pack</span>
+                </div>
+                <div class="pop-list">
+                  <button
+                    type="button"
+                    class="pop-option on"
+                    data-value="stories"
+                    data-label="Story reels"
+                  >
+                    <span class="ico">SR</span>
+                    <span class="body">
+                      <span class="name">Story reels</span>
+                      <span class="desc">Multi-beat hook → tension → resolve. Best for TikTok/IG.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <button type="button" class="pop-option" data-value="weekly" data-label="Weekly mix">
+                    <span class="ico">WK</span>
+                    <span class="body">
+                      <span class="name">Weekly mix</span>
+                      <span class="desc">Posts, carousels, and reels across pillars.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <button type="button" class="pop-option" data-value="reels" data-label="Reels only">
+                    <span class="ico">R</span>
+                    <span class="body">
+                      <span class="name">Reels only</span>
+                      <span class="desc">Vertical short-form ideas ready to animate.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div class="pop-section">Campaign</div>
+                  <button type="button" class="pop-option" data-value="beta" data-label="Beta launch">
+                    <span class="ico">β</span>
+                    <span class="body">
+                      <span class="name">Beta launch</span>
+                      <span class="desc">Acquisition-focused creatives for outreach + social.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </button>
+
+            <!-- Model -->
+            <button type="button" class="chip" id="chipModel" data-chip="model">
+              <span class="chip-value">Grok</span>
+              <span class="caret">▾</span>
+              <div class="pop" role="listbox" aria-label="Video model">
+                <div class="pop-head">
+                  <span class="pop-title">Video model</span>
+                </div>
+                <div class="pop-list">
+                  <button type="button" class="pop-option on" data-value="grok" data-label="Grok">
+                    <span class="ico">G</span>
+                    <span class="body">
+                      <span class="name">Grok Video</span>
+                      <span class="desc">Fastest volume path. Best default for drafts.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <button type="button" class="pop-option" data-value="kling_std" data-label="Kling Std">
+                    <span class="ico">K</span>
+                    <span class="body">
+                      <span class="name">Kling 3.0 Standard</span>
+                      <span class="desc">Better polish without Pro prices.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div class="pop-section">Hero only</div>
+                  <button type="button" class="pop-option" data-value="kling" data-label="Kling Pro">
+                    <span class="ico">KP</span>
+                    <span class="body">
+                      <span class="name">Kling 3.0 Pro</span>
+                      <span class="desc">Cinematic + optional native speech. Expensive.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </button>
+
+            <!-- Chrome -->
+            <button type="button" class="chip" id="chipChrome" data-chip="chrome">
+              <span class="chip-value">Organic</span>
+              <span class="caret">▾</span>
+              <div class="pop" role="listbox" aria-label="Brand chrome">
+                <div class="pop-head">
+                  <span class="pop-title">Export chrome</span>
+                </div>
+                <div class="pop-list">
+                  <button type="button" class="pop-option on" data-value="organic" data-label="Organic">
+                    <span class="ico">O</span>
+                    <span class="body">
+                      <span class="name">Organic</span>
+                      <span class="desc">Captions only. No logo, no end card. Best for volume.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="pop-option"
+                    data-value="ads_endcard"
+                    data-label="Ads + end card"
+                  >
+                    <span class="ico">A</span>
+                    <span class="body">
+                      <span class="name">Ads + end card</span>
+                      <span class="desc">Official logo end card for paid boosts.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <button type="button" class="pop-option" data-value="ads_full" data-label="Ads full brand">
+                    <span class="ico">F</span>
+                    <span class="body">
+                      <span class="name">Ads full brand</span>
+                      <span class="desc">Corner logo + end card. Max brand recall.</span>
+                    </span>
+                    <span class="check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </button>
+
+            <button type="button" class="advanced-toggle" id="advancedToggle">Advanced</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="advanced" id="advanced">
+        Style, story flow, and full model list stay here later — collapsed by default so the canvas
+        stays calm. Defaults: <code>contractor_talk</code> · <code>testimonial_talk</code> · Brand
+        kit casting.
+      </div>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <p class="note">
+      Preview only · open via
+      <code>http://localhost:5173/preview-create-composer.html</code>
+      or open this file directly
+    </p>
+
+    <script>
+      const modeAuto = document.getElementById("modeAuto");
+      const modePrompt = document.getElementById("modePrompt");
+      const autoField = document.getElementById("autoField");
+      const promptField = document.getElementById("promptField");
+      const fieldLabel = document.getElementById("fieldLabel");
+      const submit = document.getElementById("submit");
+      const result = document.getElementById("result");
+      const advanced = document.getElementById("advanced");
+      const advancedToggle = document.getElementById("advancedToggle");
+
+      let mode = "auto";
+      const state = {
+        pack: { value: "stories", label: "Story reels" },
+        model: { value: "grok", label: "Grok" },
+        chrome: { value: "organic", label: "Organic" },
+      };
+
+      function setMode(next) {
+        mode = next;
+        modeAuto.classList.toggle("on", mode === "auto");
+        modePrompt.classList.toggle("on", mode === "prompt");
+        if (mode === "auto") {
+          fieldLabel.textContent = "Auto mode";
+          autoField.classList.remove("hidden");
+          promptField.classList.add("hidden");
+          refreshAutoCopy();
+        } else {
+          fieldLabel.textContent = "Batch brief";
+          autoField.classList.add("hidden");
+          promptField.classList.remove("hidden");
+          promptField.focus();
+        }
+        result.classList.remove("show");
+      }
+
+      function refreshAutoCopy() {
+        autoField.innerHTML =
+          "Ready to generate from Brand OS · <strong>" +
+          state.pack.label +
+          "</strong> · " +
+          state.model.label +
+          " · " +
+          state.chrome.label;
+      }
+
+      modeAuto.addEventListener("click", () => setMode("auto"));
+      modePrompt.addEventListener("click", () => setMode("prompt"));
+
+      // Chip popovers (Krea-style option list)
+      document.querySelectorAll(".chip[data-chip]").forEach((chip) => {
+        const key = chip.dataset.chip;
+        const valueEl = chip.querySelector(".chip-value");
+        chip.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const wasOpen = chip.classList.contains("open");
+          document.querySelectorAll(".chip.open").forEach((c) => c.classList.remove("open"));
+          if (!wasOpen) chip.classList.add("open");
+        });
+        chip.querySelectorAll(".pop-option").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            chip.querySelectorAll(".pop-option").forEach((b) => b.classList.remove("on"));
+            btn.classList.add("on");
+            state[key] = { value: btn.dataset.value, label: btn.dataset.label };
+            valueEl.textContent = btn.dataset.label;
+            chip.classList.remove("open");
+            if (mode === "auto") refreshAutoCopy();
+          });
+        });
+      });
+
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".chip.open").forEach((c) => c.classList.remove("open"));
+      });
+
+      advancedToggle.addEventListener("click", () => {
+        advanced.classList.toggle("show");
+        advancedToggle.textContent = advanced.classList.contains("show")
+          ? "Hide advanced"
+          : "Advanced";
+      });
+
+      submit.addEventListener("click", () => {
+        const brief =
+          mode === "prompt" ? promptField.value.trim() : "(brand defaults — no brief)";
+        result.classList.add("show");
+        result.innerHTML =
+          "<strong>Would generate batch</strong><br/>" +
+          "Mode: " +
+          mode +
+          " · Pack: " +
+          state.pack.value +
+          " · Model: " +
+          state.model.value +
+          " · Chrome: " +
+          state.chrome.value +
+          "<br/>Brief: " +
+          (brief || "—") +
+          "<br/><span style='opacity:.7'>This preview does not call the API.</span>";
+      });
+
+      // Auto-grow textarea
+      promptField.addEventListener("input", () => {
+        promptField.style.height = "auto";
+        promptField.style.height = Math.min(120, promptField.scrollHeight) + "px";
+      });
+    </script>
+  </body>
+</html>

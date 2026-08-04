@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Taskiz GTM Master Plan</title>
+<style>
+:root { --ink:#10202e; --muted:#5f6d78; --brand:#1c425c; --accent:#dff0f7; --line:#d8e0e6; --bg:#f7fafc; --card:#ffffff; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family: Arial, Helvetica, sans-serif; line-height:1.55; }
+.wrapper { max-width: 1080px; margin: 0 auto; padding: 48px 28px 80px; }
+.cover { background: linear-gradient(135deg, #10202e, #1c425c); color:white; padding:56px 48px; border-radius:28px; margin-bottom:30px; box-shadow:0 20px 50px rgba(16,32,46,.18); }
+.cover h1 { font-size:46px; line-height:1.06; margin:0 0 16px; letter-spacing:-1.5px; }
+.cover p { font-size:18px; color:#dceaf1; max-width:760px; }
+.meta { text-transform:uppercase; letter-spacing:.1em; font-size:12px; color:#b8d3df; font-weight:bold; }
+nav.toc { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px 28px; margin:24px 0 28px; }
+nav.toc h2 { margin-top:0; }
+nav.toc ol { columns:2; padding-left:22px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:30px 34px; margin:18px 0; box-shadow:0 8px 22px rgba(16,32,46,.04); }
+h1,h2,h3 { color:var(--brand); line-height:1.18; }
+h2 { font-size:28px; margin:0 0 16px; letter-spacing:-.4px; }
+h3 { font-size:19px; margin-top:24px; }
+p { margin: 0 0 13px; }
+.callout { background: var(--accent); border-left:5px solid var(--brand); padding:16px 18px; border-radius:12px; margin:16px 0; }
+.callout strong { color:var(--brand); text-transform:uppercase; font-size:12px; letter-spacing:.08em; display:block; margin-bottom:4px; }
+table { width:100%; border-collapse:collapse; margin:16px 0 22px; font-size:14px; }
+th { background:var(--brand); color:white; text-align:left; padding:10px 11px; vertical-align:top; }
+td { border:1px solid var(--line); padding:10px 11px; vertical-align:top; background:white; }
+tr:nth-child(even) td { background:#fbfdfe; }
+ul,ol { padding-left:22px; }
+li { margin: 6px 0; }
+.small { color: var(--muted); font-size: 14px; }
+.tag { display:inline-block; background:#eef6fa; color:var(--brand); border:1px solid #cce3ed; padding:4px 9px; border-radius:999px; font-size:12px; font-weight:bold; margin-right:6px; }
+@media print { body{background:white;} .wrapper{max-width:none;padding:0;} section, .cover, nav.toc{box-shadow:none;break-inside:avoid;} nav.toc ol{columns:1;} }
+</style>
+</head>
+<body><div class="wrapper">
+<div class="cover"><div class="meta">Prepared for Taskiz.ai - June 25, 2026</div><h1>Taskiz Go-To-Market Master Plan</h1><p>A single operating document for launch positioning, website direction, ICP focus, acquisition, 90-day roadmap, and execution priorities.</p><p><span class="tag">Mobile-first</span><span class="tag">Contractors</span><span class="tag">GTM Roadmap</span></p></div>
+<nav class="toc"><h2>Contents</h2><ol>
+
+<li><a href="#1--executive-summary">1. Executive Summary</a></li>
+<li><a href="#2--product-truth--what-we-can-market-today">2. Product Truth: What We Can Market Today</a></li>
+<li><a href="#3--market-context">3. Market Context</a></li>
+<li><a href="#4--competitive-snapshot">4. Competitive Snapshot</a></li>
+<li><a href="#5--strategic-positioning">5. Strategic Positioning</a></li>
+<li><a href="#6--what-taskiz-should-not-say-yet">6. What Taskiz Should Not Say Yet</a></li>
+<li><a href="#7--ideal-customer-profile">7. Ideal Customer Profile</a></li>
+<li><a href="#8--customer-pain-points">8. Customer Pain Points</a></li>
+<li><a href="#9--messaging-framework">9. Messaging Framework</a></li>
+<li><a href="#10--website-roadmap">10. Website Roadmap</a></li>
+<li><a href="#11--pricing-recommendation">11. Pricing Recommendation</a></li>
+<li><a href="#12--launch-funnel">12. Launch Funnel</a></li>
+<li><a href="#13--acquisition-strategy">13. Acquisition Strategy</a></li>
+<li><a href="#14--first-outreach-campaign">14. First Outreach Campaign</a></li>
+<li><a href="#15--content-strategy">15. Content Strategy</a></li>
+<li><a href="#16--90-day-gtm-roadmap">16. 90-Day GTM Roadmap</a></li>
+<li><a href="#17--metrics-dashboard">17. Metrics Dashboard</a></li>
+<li><a href="#18--immediate-action-checklist">18. Immediate Action Checklist</a></li>
+<li><a href="#19--team-alignment-notes">19. Team Alignment Notes</a></li>
+<li><a href="#20--gamma-ready-slide-outline">20. Gamma-Ready Slide Outline</a></li>
+<li><a href="#21--source-notes">21. Source Notes</a></li>
+</ol></nav>
+<p>Prepared for Taskiz.ai. Date: June 25, 2026. This document is designed to be pasted into Google Docs, imported into Gamma, or used as a working GTM roadmap for launch execution.</p>
+<div class="callout"><strong>Strategic decision</strong>Taskiz should go to market as a simple mobile business app for contractors. Do not market Taskiz as an AI phone agent, AI receptionist, or AI employee until those workflows are fully activated, visible, and reliable in the app.</div>
+<section id="1--executive-summary"><h2>1. Executive Summary</h2>
+<p>Taskiz is ready to launch as a mobile business management app for solo contractors and small service businesses. The app already has enough value to begin customer acquisition if the positioning is kept focused, honest, and practical.</p>
+<p>The strongest go-to-market direction is not to compete head-to-head with large field service platforms on the number of features. The strongest direction is to position Taskiz as the simpler, faster, mobile-first app for contractors who currently manage their work through scattered tools like texts, phone contacts, Google Calendar, Gmail, QuickBooks, notes, spreadsheets, and memory.</p>
+<p>The launch goal should be to acquire the first 50 to 100 paying users from a narrow beachhead segment, learn why they activate or churn, and then expand into adjacent contractor categories.</p>
+<div class="callout"><strong>Core GTM thesis</strong>Taskiz helps solo contractors run the business side of their business from their phone without complicated contractor software.</div>
+</section>
+<section id="2--product-truth--what-we-can-market-today"><h2>2. Product Truth: What We Can Market Today</h2>
+<p>This GTM plan is based only on what is currently working and accessible in the app. Future or hidden functionality should not be used as a public promise during launch.</p>
+<h3>Live and Marketable Today</h3>
+<table><thead><tr>
+<th>Area</th>
+<th>Current capability</th>
+<th>How to position it</th>
+</tr></thead><tbody>
+<tr>
+<td>AI Copilot</td>
+<td>Contractors can type or talk to an assistant to create invoices, estimates, events, and interact with contacts.</td>
+<td>A faster way to manage admin from the field.</td>
+</tr>
+<tr>
+<td>Real-time voice interaction</td>
+<td>Users can tap a microphone and speak with the AI inside the app.</td>
+<td>Use your voice instead of typing when you are busy.</td>
+</tr>
+<tr>
+<td>Conversational onboarding</td>
+<td>AI helps users set up company details, rates, hours, QuickBooks, and Google Calendar.</td>
+<td>Set up your business by talking through it.</td>
+</tr>
+<tr>
+<td>Calendar</td>
+<td>Users can view schedules, book events, and sync with Google Calendar.</td>
+<td>Keep your workday organized from your phone.</td>
+</tr>
+<tr>
+<td>Contacts / CRM</td>
+<td>Users can save client details, addresses, notes, and customer history.</td>
+<td>Keep every customer detail in one place.</td>
+</tr>
+<tr>
+<td>Estimates and invoices</td>
+<td>Users can create itemized quotes, invoices, PDFs, track payment status, and sync with QuickBooks.</td>
+<td>Send professional estimates and invoices faster.</td>
+</tr>
+<tr>
+<td>Jobs and tasks</td>
+<td>Users can organize active projects, prioritize to-dos, and set deadlines.</td>
+<td>Know what needs to get done next.</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>Users can update company logo, payment terms, and integrations.</td>
+<td>Make the app feel like your business.</td>
+</tr>
+</tbody></table>
+<h3>Built but Hidden: Do Not Market Yet</h3>
+<table><thead><tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Launch decision</th>
+</tr></thead><tbody>
+<tr>
+<td>SMS Messenger</td>
+<td>Built and running, but not visible in the app menu.</td>
+<td>Do not market publicly until it has a menu button and has been tested end-to-end.</td>
+</tr>
+<tr>
+<td>Email Client</td>
+<td>Built and running, but not visible in the app menu.</td>
+<td>Do not market publicly until it has a menu button and has been tested end-to-end.</td>
+</tr>
+<tr>
+<td>AI Phone Agent Configurator</td>
+<td>Code exists but the feature is dormant and not connected to the app route/menu.</td>
+<td>Do not market as part of launch. Keep it out of homepage, ads, app store copy, and sales scripts for now.</td>
+</tr>
+</tbody></table>
+<div class="callout"><strong>Launch rule</strong>If a first-time user cannot easily find it and use it today, it should not be part of the public launch message.</div>
+</section>
+<section id="3--market-context"><h2>3. Market Context</h2>
+<p>The contractor software market is crowded. Most competitors use similar language: all-in-one field service software, job management, scheduling, quoting, invoicing, payments, CRM, and operations. Taskiz should not try to sound bigger than the market leaders. It should sound easier.</p>
+<p>The market naturally separates into three buckets: heavy field service platforms, simple estimate/invoice tools, and manual DIY workflows. Taskiz should start by attacking the third bucket and partially replacing the second bucket.</p>
+<table><thead><tr>
+<th>Market bucket</th>
+<th>Examples</th>
+<th>What they offer</th>
+<th>Taskiz opportunity</th>
+</tr></thead><tbody>
+<tr>
+<td>Heavy field service platforms</td>
+<td>Jobber, Housecall Pro, Workiz, FieldPulse, Markate, ServiceM8</td>
+<td>Broad operations, scheduling, dispatch, jobs, CRM, invoices, payments, team workflows.</td>
+<td>Position as simpler and lighter for solo operators who do not need heavy software.</td>
+</tr>
+<tr>
+<td>Estimate/invoice apps</td>
+<td>Joist, Invoice2Go, basic QuickBooks workflows</td>
+<td>Fast estimating, invoicing, and payment tools.</td>
+<td>Offer estimates/invoices plus jobs, calendar, CRM, and AI assistance in one mobile workflow.</td>
+</tr>
+<tr>
+<td>DIY workflow</td>
+<td>Texts, Gmail, Google Calendar, phone contacts, paper, notes, spreadsheets, QuickBooks</td>
+<td>Cheap and familiar, but scattered and disorganized.</td>
+<td>This is the strongest launch opportunity. Sell organization, speed, and simplicity.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="4--competitive-snapshot"><h2>4. Competitive Snapshot</h2>
+<p>The following market snapshot is not meant to prove that Taskiz has more features than every competitor. It is meant to clarify where the market is crowded and where Taskiz can stand apart.</p>
+<table><thead><tr>
+<th>Competitor</th>
+<th>Public positioning</th>
+<th>Pricing signal</th>
+<th>Strategic implication for Taskiz</th>
+</tr></thead><tbody>
+<tr>
+<td>Jobber</td>
+<td>Field service software for quoting, scheduling, invoicing, payments, and job management.</td>
+<td>Public pricing page shows plans beginning at $29/month and going up to higher team plans.</td>
+<td>Well-known and powerful. Do not compete feature-for-feature. Position Taskiz as easier for solo contractors starting out.</td>
+</tr>
+<tr>
+<td>Housecall Pro</td>
+<td>Home services business management software for trades, scheduling, dispatch, estimates, and payments.</td>
+<td>Public pricing page emphasizes a 14-day free trial and plans starting at $59/month.</td>
+<td>Strong brand and category awareness. Taskiz should avoid trying to look like a smaller Housecall Pro.</td>
+</tr>
+<tr>
+<td>Workiz</td>
+<td>Field service software with scheduling, invoices, estimates, automations, payments, local number, and client management.</td>
+<td>Public pricing page emphasizes plans for teams with first five users included.</td>
+<td>Workiz leans more operational and team-oriented. Taskiz can focus on solo owner simplicity.</td>
+</tr>
+<tr>
+<td>Joist</td>
+<td>Estimate, invoice, collect payments, and manage projects from anywhere.</td>
+<td>Public pricing page lists simple plans beginning around $10/month with higher tiers around $32/month.</td>
+<td>Joist is narrower and cheaper. Taskiz needs to show broader organization beyond invoices.</td>
+</tr>
+<tr>
+<td>ServiceM8</td>
+<td>Job management, quoting, invoicing, AI assists, and scheduling for small field service businesses.</td>
+<td>Public pricing page lists a free plan and paid plans from $29/month upward.</td>
+<td>Very relevant competitor. Taskiz should emphasize Android/iOS mobile-first simplicity and current workflow.</td>
+</tr>
+<tr>
+<td>FieldPulse</td>
+<td>Field service software for scheduling, invoicing, communication, team management, and operations.</td>
+<td>Pricing is seat-based and requires sales context.</td>
+<td>More serious operations platform. Taskiz should not chase team operations at launch.</td>
+</tr>
+<tr>
+<td>Markate</td>
+<td>Service operations platform connecting CRM, scheduling, dispatch, routing, payments, and automation.</td>
+<td>Public pricing page shows owner-operator pricing around $49.95/month or lower annually.</td>
+<td>Markate is close to the owner-operator market. Taskiz must win on mobile UX, speed, onboarding, and AI workflow.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="5--strategic-positioning"><h2>5. Strategic Positioning</h2>
+<h3>Category</h3>
+<p>The cleanest category for launch is:</p>
+<div class="callout"><strong>Category</strong>Mobile business app for contractors</div>
+<p>Secondary description:</p>
+<div class="callout"><strong>Plain-English description</strong>A simple app to manage jobs, customers, schedules, estimates, and invoices from your phone.</div>
+<h3>Positioning Statement</h3>
+<p>Taskiz is a mobile business app for solo contractors and small service businesses who need a simple way to manage jobs, customers, schedules, estimates, and invoices without complicated field service software. Unlike heavy platforms built for growing teams, Taskiz is designed for owner-operators who run their business from the field and want AI assistance built directly into their daily workflow.</p>
+<h3>Core Promise</h3>
+<div class="callout"><strong>Primary promise</strong>Run the business side of your contracting business from your phone.</div>
+<h3>Supporting Promise</h3>
+<div class="callout"><strong>Supporting promise</strong>One simple app for customers, jobs, schedules, estimates, and invoices.</div>
+<h3>Differentiation</h3>
+<ul>
+<li>Mobile-first: built for contractors working in the field, not sitting at a desk.</li>
+<li>Simple: easier starting point than heavy field service platforms.</li>
+<li>Practical AI: AI helps with real admin tasks instead of being a vague technology claim.</li>
+<li>Workflow-based: customers, jobs, schedules, estimates, invoices, and tasks live together.</li>
+<li>Integrations: QuickBooks and Google Calendar support existing contractor habits.</li>
+</ul>
+</section>
+<section id="6--what-taskiz-should-not-say-yet"><h2>6. What Taskiz Should Not Say Yet</h2>
+<p>This section matters because overpromising during launch can damage trust, reduce retention, and create unnecessary support issues.</p>
+<table><thead><tr>
+<th>Avoid saying</th>
+<th>Why</th>
+<th>Better alternative</th>
+</tr></thead><tbody>
+<tr>
+<td>AI phone receptionist</td>
+<td>Phone is not activated for launch.</td>
+<td>AI Copilot for contractor admin.</td>
+</tr>
+<tr>
+<td>Never miss another call</td>
+<td>This depends on phone functionality.</td>
+<td>Stay organized and move jobs forward from your phone.</td>
+</tr>
+<tr>
+<td>Texts and email in one inbox</td>
+<td>SMS and email are hidden, not menu-accessible.</td>
+<td>Manage customers, jobs, schedules, estimates, and invoices.</td>
+</tr>
+<tr>
+<td>Replace your office assistant</td>
+<td>Too broad and blends into a different product category.</td>
+<td>Spend less time on admin.</td>
+</tr>
+<tr>
+<td>Full field service management platform</td>
+<td>Creates comparison against mature platforms with dispatch, routing, teams, and complex operations.</td>
+<td>Simple mobile business app for solo contractors.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="7--ideal-customer-profile"><h2>7. Ideal Customer Profile</h2>
+<h3>Primary Beachhead ICP</h3>
+<div class="callout"><strong>Primary ICP</strong>Solo handyman businesses and small general contractors</div>
+<p>This is the best launch segment because the current product maps closely to their daily work. They need customer notes, job tracking, scheduling, estimates, invoices, tasks, photos, calendar, and accounting sync, but they may not need complex dispatch or multi-crew operations.</p>
+<h3>ICP Characteristics</h3>
+<ul>
+<li>Owner-operator or very small crew.</li>
+<li>Works from the field most days.</li>
+<li>Sends estimates and invoices regularly.</li>
+<li>Uses Google Calendar, Gmail, texts, QuickBooks, notes, and phone contacts today.</li>
+<li>Does not have a full-time office manager.</li>
+<li>Wants to look more professional without learning a complex platform.</li>
+<li>Feels disorganized but is not ready to buy expensive field service software.</li>
+</ul>
+<h3>Secondary ICPs</h3>
+<table><thead><tr>
+<th>Segment</th>
+<th>Fit</th>
+<th>Reason</th>
+</tr></thead><tbody>
+<tr>
+<td>Painters</td>
+<td>High</td>
+<td>Need estimates, schedules, invoices, customer notes, and job organization.</td>
+</tr>
+<tr>
+<td>Landscapers</td>
+<td>Medium-high</td>
+<td>Need scheduling and recurring work tracking, but may need recurring job workflows later.</td>
+</tr>
+<tr>
+<td>Cleaning services</td>
+<td>Medium</td>
+<td>Need scheduling and client management; may require recurring jobs and teams.</td>
+</tr>
+<tr>
+<td>Small remodelers</td>
+<td>High</td>
+<td>Need customer notes, estimates, invoices, tasks, and job documentation.</td>
+</tr>
+<tr>
+<td>Electricians</td>
+<td>Medium</td>
+<td>Strong value but more likely to expect quoting and field service-specific workflows.</td>
+</tr>
+<tr>
+<td>Plumbers / HVAC</td>
+<td>Medium later</td>
+<td>High revenue categories but more competitive and more likely to expect phones, dispatch, booking, and advanced workflows.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="8--customer-pain-points"><h2>8. Customer Pain Points</h2>
+<table><thead><tr>
+<th>Pain</th>
+<th>What the contractor says</th>
+<th>Taskiz response</th>
+</tr></thead><tbody>
+<tr>
+<td>Scattered business tools</td>
+<td>I have customer info in texts, notes, Gmail, QuickBooks, and my calendar.</td>
+<td>Bring jobs, customers, schedules, estimates, and invoices into one app.</td>
+</tr>
+<tr>
+<td>Slow estimating</td>
+<td>I forget to send estimates or do them late at night.</td>
+<td>Create and send estimates faster from the field.</td>
+</tr>
+<tr>
+<td>Disorganized jobs</td>
+<td>I forget details from previous customer conversations.</td>
+<td>Save customer notes, job details, tasks, and history in one place.</td>
+</tr>
+<tr>
+<td>Late invoicing</td>
+<td>I do the job and then forget to invoice right away.</td>
+<td>Create invoices and PDFs from the same app.</td>
+</tr>
+<tr>
+<td>Hard setup</td>
+<td>I do not want to fill out a long software setup form.</td>
+<td>Use conversational onboarding to set up business details by talking through them.</td>
+</tr>
+<tr>
+<td>Heavy software fatigue</td>
+<td>Jobber and similar apps feel like a lot for my size.</td>
+<td>Use a simpler mobile-first app built for solo contractors.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="9--messaging-framework"><h2>9. Messaging Framework</h2>
+<h3>Main Homepage Hero</h3>
+<div class="callout"><strong>Headline</strong>Run your contracting business from your phone.</div>
+<div class="callout"><strong>Subheadline</strong>Taskiz helps contractors manage customers, jobs, schedules, estimates, and invoices in one simple mobile app, with AI to help you get work done faster.</div>
+<div class="callout"><strong>CTA</strong>Join the Beta / Start Free</div>
+<h3>Alternative Hero Options</h3>
+<ul>
+<li>One simple app for jobs, customers, estimates, invoices, and schedules.</li>
+<li>Stop running your contracting business from five different apps.</li>
+<li>Built for contractors who work from the field, not behind a desk.</li>
+<li>The simple mobile business app for solo contractors.</li>
+<li>Stay organized, send estimates faster, and invoice sooner.</li>
+</ul>
+<h3>Value Props</h3>
+<table><thead><tr>
+<th>Value prop</th>
+<th>Benefit-led copy</th>
+</tr></thead><tbody>
+<tr>
+<td>Everything in one place</td>
+<td>Keep customers, jobs, tasks, schedules, estimates, and invoices together instead of jumping between apps.</td>
+</tr>
+<tr>
+<td>Built for the field</td>
+<td>Manage your business from your phone while you are between jobs, on-site, or in the truck.</td>
+</tr>
+<tr>
+<td>AI that helps with real work</td>
+<td>Talk or type to the AI Copilot to help create invoices, estimates, events, and customer actions faster.</td>
+</tr>
+<tr>
+<td>Get paid faster</td>
+<td>Create professional invoices and PDFs without waiting until the end of the day.</td>
+</tr>
+<tr>
+<td>Easy setup</td>
+<td>Set up business details, rates, hours, QuickBooks, and Google Calendar with conversational onboarding.</td>
+</tr>
+</tbody></table>
+<h3>Objection Handling</h3>
+<table><thead><tr>
+<th>Objection</th>
+<th>Response</th>
+</tr></thead><tbody>
+<tr>
+<td>I already use QuickBooks.</td>
+<td>Great. Taskiz is not trying to replace QuickBooks. It helps you manage customers, jobs, schedules, estimates, and invoices from the field, with QuickBooks sync for accounting.</td>
+</tr>
+<tr>
+<td>I already use Google Calendar.</td>
+<td>Taskiz works with Google Calendar so your schedule can stay connected while your jobs, customers, and invoices live in one contractor-focused app.</td>
+</tr>
+<tr>
+<td>I do not need complicated software.</td>
+<td>That is exactly why Taskiz exists. It is built for solo contractors who need the basics organized without heavy software.</td>
+</tr>
+<tr>
+<td>I am not technical.</td>
+<td>Taskiz is mobile-first and uses conversational setup so you can talk through your business instead of filling out complicated forms.</td>
+</tr>
+<tr>
+<td>Why not Jobber?</td>
+<td>Jobber is a strong platform for many businesses. Taskiz is a simpler starting point for solo contractors who want the core daily workflow in a lightweight mobile app.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="10--website-roadmap"><h2>10. Website Roadmap</h2>
+<p>The website should move from a narrow voice assistant pitch to a broader but accurate mobile business app pitch. Voice and AI should remain visible, but they should support the main promise instead of defining the entire product.</p>
+<h3>Recommended Homepage Structure</h3>
+<ol>
+<li>Hero: Run your contracting business from your phone.</li>
+<li>Problem: Your business is scattered across too many apps.</li>
+<li>Solution: Taskiz brings customers, jobs, schedules, estimates, and invoices into one mobile app.</li>
+<li>Core workflows: Customers, jobs, calendar, tasks, estimates, invoices.</li>
+<li>AI Copilot: Talk or type to get admin work done faster.</li>
+<li>Integrations: Google Calendar and QuickBooks.</li>
+<li>Who it is built for: handyman businesses, solo contractors, small crews, remodelers, painters, landscapers.</li>
+<li>How it works: setup, add customer, create estimate, schedule job, invoice, sync.</li>
+<li>Pricing / beta CTA: simple founder plan or beta invite.</li>
+<li>FAQ: setup, QuickBooks, Google Calendar, app platforms, ideal users, what is included.</li>
+</ol>
+<h3>Homepage Copy Draft</h3>
+<div class="callout"><strong>Hero headline</strong>Run your contracting business from your phone.</div>
+<p>Taskiz helps contractors manage customers, jobs, schedules, estimates, and invoices in one simple mobile app, with AI to help you get work done faster.</p>
+<div class="callout"><strong>Primary CTA</strong>Join the Beta</div>
+<div class="callout"><strong>Secondary CTA</strong>See How It Works</div>
+<h3>Problem Section Draft</h3>
+<p>Your work is in the field. Your business is everywhere else. Customer details are in texts. Schedules are in Google Calendar. Invoices are in QuickBooks. Job notes are in your memory. Taskiz brings the daily business workflow into one app built for contractors.</p>
+<h3>Solution Section Draft</h3>
+<p>With Taskiz, you can manage customers, create estimates, schedule jobs, organize tasks, send invoices, and keep business details connected from your phone. Use the AI Copilot when you want to move faster by typing or speaking instead of tapping through screens.</p>
+</section>
+<section id="11--pricing-recommendation"><h2>11. Pricing Recommendation</h2>
+<p>At launch, Taskiz should avoid pricing like a mature field service platform. The goal is to reduce friction, get users activated, and learn from real usage. The current product is strong enough to charge, but the launch offer should feel easy for solo contractors.</p>
+<table><thead><tr>
+<th>Plan</th>
+<th>Suggested price</th>
+<th>Purpose</th>
+<th>Included</th>
+</tr></thead><tbody>
+<tr>
+<td>Founder Beta</td>
+<td>$29/month</td>
+<td>Early traction and feedback.</td>
+<td>AI Copilot, voice interaction, CRM, jobs/tasks, calendar, estimates, invoices, PDFs, QuickBooks sync, Google Calendar sync.</td>
+</tr>
+<tr>
+<td>Standard Solo</td>
+<td>$49/month later</td>
+<td>Post-beta normal price.</td>
+<td>Same core features plus improved onboarding, templates, and support.</td>
+</tr>
+<tr>
+<td>Future Pro</td>
+<td>TBD</td>
+<td>Only after hidden/dormant communications are activated.</td>
+<td>SMS, email, phone, advanced workflows, or higher usage limits.</td>
+</tr>
+</tbody></table>
+<div class="callout"><strong>Pricing principle</strong>Do not create complex tiers at launch. One clear founder plan is enough until Taskiz understands activation, retention, and willingness to pay.</div>
+</section>
+<section id="12--launch-funnel"><h2>12. Launch Funnel</h2>
+<p>The first funnel should be simple enough to execute with a small team.</p>
+<table><thead><tr>
+<th>Stage</th>
+<th>Goal</th>
+<th>Asset needed</th>
+<th>Metric</th>
+</tr></thead><tbody>
+<tr>
+<td>Awareness</td>
+<td>Make the right contractors understand the problem.</td>
+<td>Short videos, founder posts, local group posts, simple ads.</td>
+<td>CTR, comments, replies, landing page visits.</td>
+</tr>
+<tr>
+<td>Interest</td>
+<td>Explain Taskiz in 10 seconds.</td>
+<td>Landing page with clear hero and screenshots.</td>
+<td>Landing page conversion rate.</td>
+</tr>
+<tr>
+<td>Consideration</td>
+<td>Show exactly how it works.</td>
+<td>2-minute demo video and screenshots.</td>
+<td>Demo views, beta signups.</td>
+</tr>
+<tr>
+<td>Signup</td>
+<td>Get the contractor into the app.</td>
+<td>Beta form, app store/TestFlight links, onboarding email.</td>
+<td>Signup-to-install rate.</td>
+</tr>
+<tr>
+<td>Activation</td>
+<td>Get first value quickly.</td>
+<td>Onboarding checklist inside email/support.</td>
+<td>Percentage creating first customer, estimate, job, invoice.</td>
+</tr>
+<tr>
+<td>Conversion</td>
+<td>Turn beta users into paying customers.</td>
+<td>Founder plan offer and support follow-up.</td>
+<td>Trial-to-paid conversion.</td>
+</tr>
+<tr>
+<td>Retention</td>
+<td>Make the app part of weekly workflow.</td>
+<td>Weekly tips, support check-ins, product usage nudges.</td>
+<td>Week 4 retention, invoices/estimates created.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="13--acquisition-strategy"><h2>13. Acquisition Strategy</h2>
+<h3>Channel Priority</h3>
+<table><thead><tr>
+<th>Priority</th>
+<th>Channel</th>
+<th>Why</th>
+<th>First action</th>
+</tr></thead><tbody>
+<tr>
+<td>1</td>
+<td>Founder-led outreach</td>
+<td>Fastest way to learn buyer language and objections.</td>
+<td>Build a list of 100 local handyman/contractor businesses and invite them to beta.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Local Facebook groups and contractor communities</td>
+<td>The ICP already lives in local service/business groups.</td>
+<td>Post problem-led content, not spam. Offer beta access to solo contractors.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Short-form demo content</td>
+<td>Contractors need to see the workflow quickly.</td>
+<td>Record 10 clips showing customer, estimate, schedule, invoice, and AI Copilot workflows.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Google Search landing pages</td>
+<td>High intent, but paid search may be expensive.</td>
+<td>Create SEO pages for “contractor invoice app”, “handyman estimate app”, “contractor business app”.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>App Store Optimization</td>
+<td>Important for mobile-first product discovery.</td>
+<td>Update title, subtitle, screenshots, and benefits around contractors, estimates, invoices, jobs.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Paid ads</td>
+<td>Useful after message is validated.</td>
+<td>Test small-budget Meta ads after website/demo assets are ready.</td>
+</tr>
+</tbody></table>
+<h3>Do Not Start With</h3>
+<ul>
+<li>Large paid ad spend before the landing page and demo are clear.</li>
+<li>Broad “contractor” campaigns without a niche.</li>
+<li>Enterprise field service comparisons.</li>
+<li>Messaging around phone, SMS, or email before those features are user-visible and reliable.</li>
+<li>Complicated pricing tiers before activation data exists.</li>
+</ul>
+</section>
+<section id="14--first-outreach-campaign"><h2>14. First Outreach Campaign</h2>
+<p>The first acquisition campaign should target owner-operators directly. The purpose is not just to sell; it is to learn which message gets replies.</p>
+<h3>Audience</h3>
+<ul>
+<li>Local handyman businesses.</li>
+<li>Small general contractors.</li>
+<li>Remodelers and painters with visible online presence.</li>
+<li>Businesses with weak websites or messy customer intake.</li>
+<li>Businesses that appear owner-operated, not large teams.</li>
+</ul>
+<h3>Cold Email / DM Script</h3>
+<p>Subject: Quick question about how you manage jobs</p>
+<p>Hey [Name], I am helping launch Taskiz, a simple mobile app for contractors to manage customers, jobs, schedules, estimates, and invoices from their phone. We are inviting a small group of owner-operators into the beta and looking for honest feedback from people who actually work in the field. If you are currently using a mix of texts, Google Calendar, QuickBooks, notes, or paper to manage jobs, I think this could be useful. Would you be open to trying it and telling us what works or what is missing?</p>
+<h3>Follow-up</h3>
+<p>Hey [Name], just following up. The reason I reached out is that Taskiz is built for contractors who do not want complicated software but still need to stay organized, send estimates, schedule jobs, and invoice faster. We are offering early beta access to a small group of local contractors. Happy to send the link if you want to take a look.</p>
+<h3>Founder Demo Call Script</h3>
+<ol>
+<li>Ask what tools they use today for customers, jobs, estimates, invoices, and scheduling.</li>
+<li>Ask what feels most annoying or disorganized.</li>
+<li>Show Taskiz around that exact pain, not the full product.</li>
+<li>Create a sample customer.</li>
+<li>Create a sample estimate.</li>
+<li>Schedule a sample job.</li>
+<li>Create or preview an invoice/PDF.</li>
+<li>Show AI Copilot as a speed layer.</li>
+<li>Ask: “Would this replace anything you use today?”</li>
+<li>Ask: “What would stop you from paying $29/month for this?”</li>
+</ol>
+</section>
+<section id="15--content-strategy"><h2>15. Content Strategy</h2>
+<p>Content should be simple, practical, and field-focused. Avoid polished SaaS jargon. The tone should feel like: “We understand how contractors actually work.”</p>
+<h3>Content Pillars</h3>
+<table><thead><tr>
+<th>Pillar</th>
+<th>Example topics</th>
+</tr></thead><tbody>
+<tr>
+<td>Organization</td>
+<td>Stop losing job notes in texts; how to keep customer details in one place; the simple system for weekly jobs.</td>
+</tr>
+<tr>
+<td>Getting paid</td>
+<td>Send the invoice before you leave the driveway; why late invoices hurt cash flow; estimate-to-invoice workflow.</td>
+</tr>
+<tr>
+<td>Mobile work</td>
+<td>Run your contracting business from your phone; what to do between jobs; field admin shortcuts.</td>
+</tr>
+<tr>
+<td>Simplicity</td>
+<td>Why solo contractors do not need complicated software; how to replace five apps with one workflow.</td>
+</tr>
+<tr>
+<td>AI assistance</td>
+<td>How to use AI for estimates, invoices, schedules, and customer organization without changing how you work.</td>
+</tr>
+</tbody></table>
+<h3>First 10 Video Ideas</h3>
+<ol>
+<li>“If your customer info is in texts, notes, and memory, this is for you.”</li>
+<li>“Create a contractor estimate from your phone in under one minute.”</li>
+<li>“How to schedule a job and keep the customer attached to it.”</li>
+<li>“Stop waiting until night to send invoices.”</li>
+<li>“Taskiz vs five apps: contacts, calendar, notes, QuickBooks, camera roll.”</li>
+<li>“A simple app for handyman businesses.”</li>
+<li>“Use your voice to manage contractor admin.”</li>
+<li>“From customer call to estimate to job to invoice.”</li>
+<li>“Why heavy contractor software is too much for many solo operators.”</li>
+<li>“The easiest way to start organizing your contracting business.”</li>
+</ol>
+</section>
+<section id="16--90-day-gtm-roadmap"><h2>16. 90-Day GTM Roadmap</h2>
+<h3>Phase 1: Foundation, Days 1-14</h3>
+<table><thead><tr>
+<th>Workstream</th>
+<th>Actions</th>
+<th>Owner</th>
+<th>Success criteria</th>
+</tr></thead><tbody>
+<tr>
+<td>Positioning</td>
+<td>Lock category, ICP, promise, and what not to market.</td>
+<td>Founder / Growth</td>
+<td>Everyone uses the same one-sentence explanation.</td>
+</tr>
+<tr>
+<td>Website</td>
+<td>Rewrite homepage around mobile contractor business app, not AI phone.</td>
+<td>Marketing / Web</td>
+<td>New hero, problem, solution, workflows, CTA live.</td>
+</tr>
+<tr>
+<td>Demo</td>
+<td>Record 2-minute product walkthrough focused on handyman/solo contractor workflow.</td>
+<td>Founder / Product</td>
+<td>Demo link available for outreach and landing page.</td>
+</tr>
+<tr>
+<td>Beta offer</td>
+<td>Define Founder Beta plan and onboarding flow.</td>
+<td>Founder</td>
+<td>Clear CTA and pricing/beta terms.</td>
+</tr>
+<tr>
+<td>Tracking</td>
+<td>Set up basic analytics for website, signup, install, activation.</td>
+<td>Product / Growth</td>
+<td>Can see conversion from visit to activated user.</td>
+</tr>
+</tbody></table>
+<h3>Phase 2: Beta Acquisition, Days 15-30</h3>
+<table><thead><tr>
+<th>Workstream</th>
+<th>Actions</th>
+<th>Owner</th>
+<th>Success criteria</th>
+</tr></thead><tbody>
+<tr>
+<td>List building</td>
+<td>Build 300 target prospects: handyman, small contractors, painters, remodelers.</td>
+<td>Growth</td>
+<td>Clean list with business name, owner/contact, location, channel.</td>
+</tr>
+<tr>
+<td>Outreach</td>
+<td>Send 100 personalized invitations per week.</td>
+<td>Founder / Sales</td>
+<td>10-20 meaningful replies by day 30.</td>
+</tr>
+<tr>
+<td>Communities</td>
+<td>Post useful problem-led content in local business/contractor groups.</td>
+<td>Growth</td>
+<td>5-10 beta conversations.</td>
+</tr>
+<tr>
+<td>Onboarding</td>
+<td>Personally onboard first 10-20 users.</td>
+<td>Founder / Support</td>
+<td>At least 10 users complete first customer + estimate or invoice.</td>
+</tr>
+<tr>
+<td>Learning</td>
+<td>Collect objection and language notes after every conversation.</td>
+<td>Growth</td>
+<td>Documented patterns for copy improvements.</td>
+</tr>
+</tbody></table>
+<h3>Phase 3: Activation and Conversion, Days 31-60</h3>
+<table><thead><tr>
+<th>Workstream</th>
+<th>Actions</th>
+<th>Owner</th>
+<th>Success criteria</th>
+</tr></thead><tbody>
+<tr>
+<td>Activation</td>
+<td>Guide users to create first customer, job, estimate, calendar event, and invoice.</td>
+<td>Product / Support</td>
+<td>50%+ of beta users complete at least one key workflow.</td>
+</tr>
+<tr>
+<td>Case studies</td>
+<td>Get 3 early users to share before/after workflow.</td>
+<td>Founder</td>
+<td>3 usable testimonials or mini case studies.</td>
+</tr>
+<tr>
+<td>Pricing test</td>
+<td>Offer $29/month Founder Plan to activated users.</td>
+<td>Founder / Sales</td>
+<td>10+ paying users or clear pricing objections.</td>
+</tr>
+<tr>
+<td>Content</td>
+<td>Publish demo clips and ICP-specific posts.</td>
+<td>Marketing</td>
+<td>Consistent weekly inbound conversations.</td>
+</tr>
+<tr>
+<td>Website iteration</td>
+<td>Update copy based on real objections and customer language.</td>
+<td>Growth / Web</td>
+<td>Improved signup rate over first version.</td>
+</tr>
+</tbody></table>
+<h3>Phase 4: Repeatability, Days 61-90</h3>
+<table><thead><tr>
+<th>Workstream</th>
+<th>Actions</th>
+<th>Owner</th>
+<th>Success criteria</th>
+</tr></thead><tbody>
+<tr>
+<td>Scale outreach</td>
+<td>Increase outreach volume based on best-performing message.</td>
+<td>Growth / Sales</td>
+<td>Predictable replies from a defined ICP.</td>
+</tr>
+<tr>
+<td>Paid test</td>
+<td>Launch small Meta ad test to validated landing page.</td>
+<td>Marketing</td>
+<td>Cost per beta signup is measurable and reasonable.</td>
+</tr>
+<tr>
+<td>App store optimization</td>
+<td>Update app listing with contractor business app positioning.</td>
+<td>Product / Marketing</td>
+<td>Clearer screenshots and benefit-led copy live.</td>
+</tr>
+<tr>
+<td>Referral loop</td>
+<td>Offer early users a simple referral reward.</td>
+<td>Founder</td>
+<td>First referral users acquired.</td>
+</tr>
+<tr>
+<td>Decision point</td>
+<td>Decide whether to double down on handyman/solo contractors or expand to next ICP.</td>
+<td>Founder / Growth</td>
+<td>Clear next 90-day plan.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="17--metrics-dashboard"><h2>17. Metrics Dashboard</h2>
+<p>Taskiz should not only track signups. The most important metric is activation: whether a contractor experiences the core value of organizing and managing work inside the app.</p>
+<table><thead><tr>
+<th>Metric</th>
+<th>Why it matters</th>
+<th>Target for first 90 days</th>
+</tr></thead><tbody>
+<tr>
+<td>Website visitor to signup rate</td>
+<td>Measures clarity of positioning.</td>
+<td>5-10% on warm traffic.</td>
+</tr>
+<tr>
+<td>Signup to app install rate</td>
+<td>Measures download friction.</td>
+<td>50%+ from beta users.</td>
+</tr>
+<tr>
+<td>Install to onboarding completion</td>
+<td>Measures setup usability.</td>
+<td>50%+ for beta cohort.</td>
+</tr>
+<tr>
+<td>First customer created</td>
+<td>Early activation signal.</td>
+<td>60%+ of onboarded users.</td>
+</tr>
+<tr>
+<td>First estimate or invoice created</td>
+<td>Core value signal.</td>
+<td>40%+ of onboarded users.</td>
+</tr>
+<tr>
+<td>First calendar event/job created</td>
+<td>Workflow adoption signal.</td>
+<td>30%+ of onboarded users.</td>
+</tr>
+<tr>
+<td>Week 4 retention</td>
+<td>Shows whether Taskiz becomes useful beyond curiosity.</td>
+<td>25-40% early benchmark.</td>
+</tr>
+<tr>
+<td>Trial/beta to paid conversion</td>
+<td>Measures willingness to pay.</td>
+<td>10-20% early benchmark.</td>
+</tr>
+<tr>
+<td>Qualitative objections</td>
+<td>Explains why users do not convert.</td>
+<td>Document after every call.</td>
+</tr>
+</tbody></table>
+</section>
+<section id="18--immediate-action-checklist"><h2>18. Immediate Action Checklist</h2>
+<h3>This Week</h3>
+<ol>
+<li>Lock the launch positioning: “mobile business app for contractors.”</li>
+<li>Remove or de-emphasize AI phone language from the website until phone is activated.</li>
+<li>Rewrite the homepage hero, subheadline, problem section, and CTA.</li>
+<li>Create one simple demo video showing customer to estimate to schedule to invoice.</li>
+<li>Define the beta offer: free beta or $29/month Founder Plan.</li>
+<li>Create a prospect list of 100 local handyman/small contractor businesses.</li>
+<li>Send the first 25 personalized outreach messages.</li>
+<li>Prepare a simple onboarding checklist for beta users.</li>
+</ol>
+<h3>Next 30 Days</h3>
+<ol>
+<li>Launch updated landing page.</li>
+<li>Personally onboard 10-20 beta users.</li>
+<li>Track activation events manually if analytics are not complete.</li>
+<li>Collect objections and exact customer language.</li>
+<li>Create 10 short demo videos.</li>
+<li>Update App Store / Play Store copy around contractor business management.</li>
+<li>Secure 3 testimonials or mini case studies.</li>
+<li>Start charging a small founder price once value is proven.</li>
+</ol>
+<h3>Next 90 Days</h3>
+<ol>
+<li>Reach 50-100 serious beta users.</li>
+<li>Convert 10-25 paying users.</li>
+<li>Identify the highest-retention ICP.</li>
+<li>Validate the best acquisition channel.</li>
+<li>Build a repeatable outreach and onboarding process.</li>
+<li>Prepare the next GTM phase based on real activation and retention data.</li>
+</ol>
+</section>
+<section id="19--team-alignment-notes"><h2>19. Team Alignment Notes</h2>
+<p>The team should be aligned around three boundaries.</p>
+<ol>
+<li>Launch what exists: market only live, visible, reliable features.</li>
+<li>Win with simplicity: do not pretend to be a full enterprise field service platform.</li>
+<li>Learn from users: the first 90 days are about activation, retention, and buyer language, not vanity metrics.</li>
+</ol>
+<div class="callout"><strong>Master one-liner</strong>Taskiz is the simple mobile business app that helps contractors manage jobs, customers, schedules, estimates, and invoices from their phone.</div>
+</section>
+<section id="20--gamma-ready-slide-outline"><h2>20. Gamma-Ready Slide Outline</h2>
+<p>Use this section if turning the strategy into a Gamma presentation.</p>
+<ol>
+<li>Title: Taskiz Go-To-Market Plan</li>
+<li>The decision: Launch as a mobile business app for contractors.</li>
+<li>Product truth: What is live today and what not to market.</li>
+<li>Market landscape: Heavy platforms, invoice apps, DIY workflow.</li>
+<li>Competitive gap: Simple, mobile-first, AI-assisted workflow for solo contractors.</li>
+<li>Primary ICP: Handyman businesses and solo general contractors.</li>
+<li>Core message: Run your contracting business from your phone.</li>
+<li>Website plan: Hero, problem, solution, workflows, AI Copilot, integrations, CTA.</li>
+<li>Acquisition plan: Outreach, communities, demo content, SEO, app store, paid tests.</li>
+<li>90-day roadmap: Foundation, beta acquisition, activation/conversion, repeatability.</li>
+<li>Metrics: Activation, retention, conversion, customer language.</li>
+<li>Immediate next actions: update website, record demo, launch outreach, onboard beta users.</li>
+</ol>
+</section>
+<section id="21--source-notes"><h2>21. Source Notes</h2>
+<p>These sources were used to verify market positioning and pricing signals. Pricing and positioning can change, so refresh before publishing external comparison claims.</p>
+<table><thead><tr>
+<th>Source</th>
+<th>What it supported</th>
+<th>URL</th>
+</tr></thead><tbody>
+<tr>
+<td>Taskiz.ai</td>
+<td>Current public positioning as a voice-powered assistant for contractors.</td>
+<td>https://taskiz.ai/</td>
+</tr>
+<tr>
+<td>Jobber pricing</td>
+<td>Current public pricing and field service positioning.</td>
+<td>https://www.getjobber.com/pricing/</td>
+</tr>
+<tr>
+<td>Housecall Pro pricing</td>
+<td>Current public pricing signal and trade software positioning.</td>
+<td>https://www.housecallpro.com/pricing/</td>
+</tr>
+<tr>
+<td>Workiz pricing</td>
+<td>Current public feature/pricing language for scheduling, invoices, estimates, automation, payments, and client management.</td>
+<td>https://www.workiz.com/pricing-plans/</td>
+</tr>
+<tr>
+<td>Joist homepage/pricing</td>
+<td>Estimate, invoice, payments positioning and lower-price invoice app category.</td>
+<td>https://www.joist.com/ and https://www.joist.com/pricing/</td>
+</tr>
+<tr>
+<td>ServiceM8 pricing</td>
+<td>Free and paid plan structure for small field service businesses.</td>
+<td>https://www.servicem8.com/us/pricing</td>
+</tr>
+<tr>
+<td>FieldPulse pricing/homepage</td>
+<td>Seat-based pricing and field service platform positioning.</td>
+<td>https://www.fieldpulse.com/pricing and https://www.fieldpulse.com/</td>
+</tr>
+<tr>
+<td>Markate pricing/homepage</td>
+<td>Service operations platform positioning and owner-operator pricing.</td>
+<td>https://www.markate.com/ and https://www.markate.com/pricing</td>
+</tr>
+</tbody></table>
+</section>
+</div></body></html>

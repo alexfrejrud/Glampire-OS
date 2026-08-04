@@ -1,0 +1,71 @@
+{
+  "id": "taskiz",
+  "name": "Taskiz",
+  "website": "https://taskiz.ai",
+  "category": "Mobile business app for contractors",
+  "oneLiner": "Run your contracting business from your phone.",
+  "supporting": "Taskiz helps contractors manage customers, jobs, schedules, estimates, and invoices in one simple mobile app, with AI to help you get work done faster.",
+  "promise": "Run the business side of your contracting business from your phone.",
+  "primaryCta": "Join the Beta",
+  "secondaryCta": "See How It Works",
+  "ctas": [
+    "Join the Beta",
+    "Start Free",
+    "See How It Works",
+    "Get Started"
+  ],
+  "colors": {
+    "ink": "#000000",
+    "inkSoft": "#262424",
+    "brand": "#9563FF",
+    "brandDeep": "#663CF6",
+    "accent": "#ED81FF",
+    "accentSoft": "#D1D0FC",
+    "surface": "#F7F7F7",
+    "surfaceLilac": "#F6F3FE",
+    "bg": "#FFFFFF",
+    "muted": "#5E5F5C",
+    "warm": "#E88146",
+    "link": "#0099FF",
+    "dark": "#141233"
+  },
+  "fonts": {
+    "sans": "Outfit, Inter, system-ui, sans-serif",
+    "mono": "Fragment Mono, ui-monospace, monospace"
+  },
+  "icp": {
+    "primary": [
+      "Solo handyman businesses",
+      "Small general contractors"
+    ],
+    "secondary": [
+      "Painters",
+      "Remodelers",
+      "Landscapers"
+    ],
+    "later": [
+      "Electricians",
+      "Plumbers",
+      "HVAC"
+    ]
+  },
+  "doNotSay": [
+    "AI phone receptionist",
+    "never miss a call",
+    "AI employee",
+    "replace your office assistant",
+    "full field service management platform",
+    "SMS and email inbox",
+    "texts and email in one place"
+  ],
+  "photographyStyle": "documentary commercial photography, authentic owner-operator contractor, 30s-50s, real residential job site, driveway, or work van interior, natural daylight or golden hour, soft realistic shadows, single clear subject, shallow depth of field, rule of thirds, intentional negative space on one side for later text overlay, clean modern composition — not stock-photo cliché, hands, tools, phone-as-tool (screen not readable), premium but practical, never fashion-editorial",
+  "imageNegatives": "no text of any kind, no letters, numbers, captions, subtitles, or watermarks, no brand names, logos, or wordmarks on vehicles, clothing, tools, walls, or screens, no \"Taskiz\" or any product name written in the scene, no fake UI, no unreadable gibberish text on phones, no stock-photo fake smiles, no hard-hat cliché posing for camera, no sci-fi holograms, robots, call-center headsets, neon cyberpunk, no busy collage, no multi-panel, no magazine cover layout, no billboards, no painted logos on vans",
+  "compositionNotes": "Frame like a premium lifestyle ad still, not a random AI stock image. One hero moment only (one person OR one clear action). Leave clean lower-third or side area empty for design overlay later. Phone may appear but screen content must be blank/blurred/unreadable. Prefer medium shots and over-shoulder; avoid extreme wide empty lots.",
+  "defaultVideoStyleId": "contractor_talk",
+  "defaultFlowId": "testimonial_talk",
+  "defaultVideoModelId": "grok",
+  "defaultDeliveryMode": "caption_talk",
+  "defaultGenerateAudio": false,
+  "defaultBrandChrome": "organic",
+  "defaultUseAsrCaptions": true
+}

@@ -1,0 +1,52 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies & build
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+.sc/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Server runtime / generated media (multi-GB; regenerate locally)
+server/data/renders/
+server/data/tmp/
+server/data/hyperframes/
+server/data/video-jobs.json
+server/data/e2e-story-last.json
+server/data/active-workspace.json
+server/data/refs/files/
+
+# Optional local overrides
+clients/**/brand.overrides.json
+clients/**/onboarding.json
+
+# Keep empty runtime dirs in repo
+!server/data/.gitkeep
+!server/data/renders/.gitkeep
+!server/data/tmp/.gitkeep
+!server/data/hyperframes/.gitkeep
+!server/data/refs/.gitkeep
+!server/data/refs/files/.gitkeep
+
+# Coverage / misc
+coverage/
+.nyc_output/
+*.pem

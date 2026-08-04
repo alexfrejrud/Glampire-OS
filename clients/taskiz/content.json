@@ -1,0 +1,166 @@
+{
+  "pillars": [
+    {
+      "id": "pain",
+      "label": "Contractor pain",
+      "description": "Scattered tools, late invoices, lost notes, five-app chaos"
+    },
+    {
+      "id": "demo",
+      "label": "Product demo",
+      "description": "Customer → estimate → job → invoice from the phone"
+    },
+    {
+      "id": "before_after",
+      "label": "Before / after",
+      "description": "Chaos vs organized with Taskiz"
+    },
+    {
+      "id": "education",
+      "label": "Education",
+      "description": "What solo contractors should track between jobs"
+    },
+    {
+      "id": "trust",
+      "label": "Trust & launch",
+      "description": "Field-first beta, owner-operator fit"
+    }
+  ],
+  "formats": [
+    {
+      "id": "post",
+      "label": "Post",
+      "aspectRatio": "1:1",
+      "size": "1080×1080",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "linkedin"
+      ],
+      "description": "Single-image feed post"
+    },
+    {
+      "id": "carousel",
+      "label": "Carousel",
+      "aspectRatio": "1:1",
+      "size": "1080×1080",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "linkedin"
+      ],
+      "description": "3–6 slide story sequence"
+    },
+    {
+      "id": "reel",
+      "label": "Reel",
+      "aspectRatio": "9:16",
+      "size": "1080×1920",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "tiktok",
+        "youtube"
+      ],
+      "description": "Vertical short video (multi-beat story preferred)"
+    }
+  ],
+  "packIds": [
+    "weekly",
+    "beta",
+    "paid",
+    "reels",
+    "carousels",
+    "stories"
+  ],
+  "ideaSource": "builtin:taskiz",
+  "storyDefaults": {
+    "flowId": "testimonial_talk",
+    "styleId": "contractor_talk",
+    "videoModelId": "grok",
+    "deliveryMode": "caption_talk",
+    "generateAudio": false
+  },
+  "qualityBar": {
+    "dialogueMaxWords": 16,
+    "keywordMaxWords": 4,
+    "requireBeatContinuity": true,
+    "ctaAllowed": [
+      "Join the Beta",
+      "Start Free",
+      "See How It Works",
+      "Get Started"
+    ],
+    "primaryIcp": [
+      "Solo handyman businesses",
+      "Small general contractors"
+    ]
+  },
+  "flagshipReels": [
+    {
+      "id": "reel-lost-in-texts",
+      "priority": 100,
+      "pillar": "pain",
+      "hook": "Half my customers used to live in my text messages.",
+      "tension": "By Friday I couldn't find half of what I promised people.",
+      "resolve": "Now customers, jobs, the whole thing — on my phone. Taskiz. Join the beta.",
+      "keywords": [
+        "Lost in texts",
+        "Friday scramble",
+        "One phone"
+      ]
+    },
+    {
+      "id": "reel-midnight-invoices",
+      "priority": 95,
+      "pillar": "demo",
+      "hook": "I used to wait until midnight to send invoices. Every night.",
+      "tension": "Job's done at four… then I'm still at the kitchen table doing the books.",
+      "resolve": "Now I invoice before I leave the driveway. Taskiz — join the beta.",
+      "keywords": [
+        "Midnight invoices",
+        "Kitchen table tax",
+        "Paid faster"
+      ]
+    },
+    {
+      "id": "reel-five-apps",
+      "priority": 90,
+      "pillar": "before_after",
+      "hook": "How many apps to run one job? Used to be five for me.",
+      "tension": "Contacts. Calendar. Notes. QuickBooks. Camera roll. Nothing talked.",
+      "resolve": "One phone workflow now. That's Taskiz. If you're solo — join the beta.",
+      "keywords": [
+        "Five apps",
+        "Nothing talks",
+        "One workflow"
+      ]
+    },
+    {
+      "id": "reel-field-first",
+      "priority": 88,
+      "pillar": "trust",
+      "hook": "This isn't for people who sit behind a desk all day. That's not my life.",
+      "tension": "I needed something that works between jobs — not another office.",
+      "resolve": "Customers, jobs, invoices — on my phone. Taskiz beta. Come try it.",
+      "keywords": [
+        "Not desk software",
+        "Between jobs",
+        "On your phone"
+      ]
+    },
+    {
+      "id": "reel-notes-app",
+      "priority": 85,
+      "pillar": "education",
+      "hook": "Running a handyman business out of the Notes app? Yeah. That was me.",
+      "tension": "Customers, jobs, invoices — all scattered. We deserve simpler than that.",
+      "resolve": "One phone. Whole business. Taskiz beta is open — come join it.",
+      "keywords": [
+        "Notes app biz",
+        "Scattered",
+        "Whole business"
+      ]
+    }
+  ]
+}

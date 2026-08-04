@@ -1,0 +1,34 @@
+{
+  "voiceId": "TX3LPaxmHKxFdv7VOQHJ",
+  "name": "Liam - Energetic, Social Media Creator",
+  "source": "auto",
+  "profile": "peer_male",
+  "score": 89,
+  "labels": {
+    "accent": "american",
+    "age": "young",
+    "gender": "male",
+    "useCase": "social_media",
+    "descriptive": "confident",
+    "language": "en",
+    "use_case": "social_media"
+  },
+  "at": 1785733812688,
+  "alternatives": [
+    {
+      "voiceId": "iP95p4xoKVk53GoZ742B",
+      "name": "Chris - Charming, Down-to-Earth",
+      "score": 89
+    },
+    {
+      "voiceId": "pNInz6obpgDQGcFmaJgB",
+      "name": "Adam - Dominant, Firm",
+      "score": 89
+    },
+    {
+      "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+      "name": "Roger - Laid-Back, Casual, Resonant",
+      "score": 81
+    }
+  ]
+}
