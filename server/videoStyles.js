@@ -11,6 +11,13 @@
  * Taskiz tip: ultra_ugc + Kling for paid/Meta realism; documentary + Grok for weekly volume.
  */
 
+import {
+    isUgcStyle,
+    buildUgcVideoPrompt,
+    ugcAuthenticitySuffix,
+    stripForbiddenHype,
+} from './creativeFormulas.js';
+
 /**
  * Taskiz quality lanes — guidance only (UI / operator playbook).
  * Does not force Creative Studio into one look.
@@ -429,27 +436,54 @@ export function styleImageFragments(styleId) {
 
 /**
  * Build motion prompt from style + optional beat-level motion.
+ * UGC styles with dialogue get the full authenticity / speech stack.
  */
-export function buildStyledVideoPrompt({ styleId, beatMotion, beatRole } = {}) {
+export function buildStyledVideoPrompt({
+    styleId,
+    beatMotion,
+    beatRole,
+    dialogue,
+    generateAudio = false,
+    durationSec = 5,
+    brand = null,
+} = {}) {
     const s = getVideoStyle(styleId);
     const roleHint =
         beatRole === 'hook'
             ? 'This is the HOOK beat — establish tension or curiosity in the first second.'
             : beatRole === 'tension'
-                ? 'This is the TENSION / build beat — deepen the problem without resolving it.'
-                : beatRole === 'resolve'
-                    ? 'This is the RESOLVE beat — calmer, clearer, room for CTA energy.'
-                    : '';
+              ? 'This is the TENSION / build beat — deepen the problem without resolving it.'
+              : beatRole === 'resolve'
+                ? 'This is the RESOLVE beat — calmer, clearer, room for CTA energy.'
+                : '';
 
-    return [
-        s.videoPromptBlock,
-        beatMotion ? `Beat-specific motion: ${beatMotion}.` : '',
-        roleHint,
-        `Camera language: ${s.camera}.`,
-        `Lighting continuity: ${s.lighting}.`,
-        `Energy: ${s.energy}.`,
-        `Strict negatives: ${s.negatives}. No text, no logos, no title cards in the generated video.`,
-    ]
-        .filter(Boolean)
-        .join(' ');
+    if (isUgcStyle(styleId) && (dialogue || generateAudio)) {
+        const { prompt } = buildUgcVideoPrompt({
+            brand: brand || undefined,
+            styleVideoBlock: s.videoPromptBlock,
+            dialogue,
+            beatRole,
+            beatMotion,
+            generateAudio,
+            durationSec,
+        });
+        return prompt;
+    }
+
+    const auth = ugcAuthenticitySuffix(styleId);
+    return stripForbiddenHype(
+        [
+            s.videoPromptBlock,
+            beatMotion ? `Beat-specific motion: ${beatMotion}.` : '',
+            roleHint,
+            `Camera language: ${s.camera}.`,
+            `Lighting continuity: ${s.lighting}.`,
+            `Energy: ${s.energy}.`,
+            auth ? `Authenticity: ${auth}.` : '',
+            `Strict negatives: ${s.negatives}. No text, no logos, no title cards in the generated video.`,
+            'Avoid empty hype: never rely on cinematic, professional, stunning, 8k, studio, perfect.',
+        ]
+            .filter(Boolean)
+            .join(' ')
+    );
 }

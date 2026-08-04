@@ -326,57 +326,15 @@
     border: 1px solid var(--color-border);
   }
 
-  /* Video model picker — pill buttons (native <select> was unreadable in dark mode) */
+  /* Video model picker — compact Astryx Selector on cards */
   .inline-model-pick {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
     margin-top: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-text-secondary);
+    width: 100%;
+    min-width: 0;
   }
 
-  .model-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .model-pill {
-    appearance: none;
-    margin: 0;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: normal;
-    text-transform: none;
-    cursor: pointer;
-    border-radius: 999px;
-    border: 1px solid var(--color-border, #333);
-    background: transparent;
-    color: var(--color-text-primary);
-    padding: 6px 12px;
-    line-height: 1.2;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-  }
-
-  .model-pill:hover:not(:disabled) {
-    border-color: var(--color-text-primary);
-    background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  }
-
-  .model-pill.on {
-    background: var(--color-text-primary);
-    color: var(--color-background-body);
-    border-color: var(--color-text-primary);
-  }
-
-  .model-pill:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .inline-model-pick .astryx-selector {
+    width: 100%;
   }
 
   .drawer input,

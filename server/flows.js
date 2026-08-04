@@ -345,6 +345,15 @@ export function expandBeats(idea, { flowId, styleId } = {}) {
             .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 28);
+        // Prefer per-beat motions (batch variety) over a single idea-wide push-in
+        const beatMotionList = Array.isArray(idea.beatMotions) ? idea.beatMotions : null;
+        const videoMotion =
+            seeded.videoMotion ||
+            beatMotionList?.[idx] ||
+            tpl.motionHint ||
+            idea.videoMotion ||
+            null;
+
         return {
             id: seeded.id || `beat-${idx + 1}`,
             index: idx,
@@ -361,7 +370,7 @@ export function expandBeats(idea, { flowId, styleId } = {}) {
             }),
             caption: seeded.caption || idea.caption || dialogue,
             imageSubject: seeded.imageSubject || defaultSubjects[idx] || idea.imageSubject,
-            videoMotion: seeded.videoMotion || tpl.motionHint || idea.videoMotion,
+            videoMotion,
             endCard: Boolean(tpl.endCard),
             imageUrl: seeded.imageUrl || null,
             videoUrl: seeded.videoUrl || null,

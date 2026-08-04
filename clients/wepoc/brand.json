@@ -66,9 +66,9 @@
     "Thousands of active members",
     "Industry-leading network"
   ],
-  "photographyStyle": "documentary commercial photography of independent musicians and creators of color — home studio, writing, headphones, city creative life, candid peer energy, natural light, single clear subject, intentional negative space for text overlay — never construction jobsites, never contractors, never hard-hat trades",
-  "imageNegatives": "no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clichés, no construction workers, no contractors, no plumbers, no jobsite trucks as hero, no tool belts, no hard hats",
-  "compositionNotes": "One hero creative moment (artist, producer, or songwriter), clean negative space for overlay, medium shot preferred, culturally authentic.",
+  "photographyStyle": "documentary commercial photography, authentic subjects, natural light, single clear subject, intentional negative space for text overlay",
+  "imageNegatives": "no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clichés",
+  "compositionNotes": "One hero moment, clean negative space for later overlay, medium shot preferred.",
   "voice": "Authentic, confident, culturally aware, and encouraging—music-industry expertise expressed in clear, practical language without hype or corporate jargon.",
   "pricingModel": "$29.99/year for WEPOC membership",
   "keyFeatures": [
@@ -95,7 +95,6 @@
   ],
   "defaultVideoStyleId": "documentary_commercial",
   "defaultFlowId": "pain_to_cta",
-  "_videoNote": "Avoid contractor_talk style for this brand — documentary_commercial + Brand OS ICP lock",
   "defaultVideoModelId": "grok",
   "defaultDeliveryMode": "caption_talk",
   "defaultGenerateAudio": false,
@@ -228,18 +227,5 @@
     "Before / after the old workflow",
     "Peer social proof",
     "Offer clarity: $29.99/year for WEPOC membership"
-  ],
-  "visualWorld": {
-    "id": "music",
-    "environment": "home studio, creative apartment, city creative life, headphones/writing context — never construction jobsites",
-    "wardrobe": "creative streetwear, headphones optional, no luxury logos",
-    "characterAge": "mid-20s to mid-30s",
-    "negativesExtra": "no contractors, no plumbers, no hard hats, no jobsite trucks as hero, no tool belts, no construction",
-    "photoHint": "documentary commercial of creators in music/creative life, candid peer energy, natural light",
-    "confidence": "inferred"
-  },
-  "castBrief": "the same authentic person representing ICP (Emerging independent artists, Independent songwriters, Independent music producers), mid-20s to mid-30s, peer UGC energy not fashion model, natural skin texture, creative streetwear, headphones optional, no luxury logos, continuity face/wardrobe across beats",
-  "environment": "home studio, creative apartment, city creative life, headphones/writing context — never construction jobsites",
-  "wardrobe": "creative streetwear, headphones optional, no luxury logos",
-  "visualNegativesExtra": "no contractors, no plumbers, no hard hats, no jobsite trucks as hero, no tool belts, no construction"
+  ]
 }

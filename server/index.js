@@ -1,10 +1,16 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateBatch, listPacks, getBrandPublic, rematerializeItem } from './contentEngine.js';
+import {
+  generateBatch,
+  listPacks,
+  getBrandPublic,
+  rematerializeItem,
+  regenItemScript,
+} from './contentEngine.js';
 import { generateImageBatch, listImageBatchOptions } from './imageBatch.js';
 import { generateAdBatch, listAdBatchOptions } from './adBatch.js';
 import { composeAd, resolveAdRenderPath } from './adCompose.js';
@@ -80,6 +86,34 @@ import {
 import { listBenchmarks, getBenchmark, SCORECARD_RUBRIC } from './benchmarks.js';
 import { listFlows, getFlow } from './flows.js';
 import { assembleStoryReel, resolveRenderPath } from './storyAssembler.js';
+import {
+  listCreativeFormulas,
+  buildCastSheet,
+  buildUgcStillPrompt,
+  checkDialogueDuration,
+} from './creativeFormulas.js';
+import {
+  previewCharacterSheet,
+  generateHeroStill,
+  generateCastAngles,
+  generateFullCharacterSheet,
+  hasCharacterSheetKey,
+} from './characterSheet.js';
+import {
+  cloneAdImage,
+  cloneVideoStructure,
+  hasCreativeCloneKey,
+} from './creativeClone.js';
+import {
+  listNativeUiTemplates,
+  getNativeUiTemplate,
+  buildNativeUiPrompt,
+  generateNativeUiAd,
+} from './nativeUiAds.js';
+import { logGeneration, listGenerations, auditStats } from './genAudit.js';
+import { getBrand } from './brand.js';
+
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -105,6 +139,9 @@ app.get('/api/health', (_req, res) => {
     vision: hasVisionKey(),
     visionProvider: visionProvider(),
     scriptClone: hasScriptCloneKey(),
+    characterSheet: hasCharacterSheetKey(),
+    creativeClone: hasCreativeCloneKey(),
+    creativeTools: true,
     story: true,
     videoModels: listVideoModelsWithAvailability().map((m) => ({
       id: m.id,
@@ -411,11 +448,28 @@ app.get('/api/renders', (_req, res) => {
   }
 });
 
-/** Serve assembled story renders */
+/** Serve assembled story renders (?download=1 → attachment for Save As) */
 app.get('/api/renders/:fileName', (req, res) => {
-  const filePath = resolveRenderPath(req.params.fileName);
-  if (!filePath) return res.status(404).json({ error: 'Not found' });
-  res.sendFile(filePath);
+  try {
+    const filePath = resolveRenderPath(req.params.fileName);
+    if (!filePath) return res.status(404).json({ error: 'Not found' });
+    const base = path.basename(filePath);
+    const asDownload =
+      req.query.download === '1' ||
+      req.query.download === 'true' ||
+      String(req.query.disposition || '').toLowerCase() === 'attachment';
+    if (asDownload) {
+      res.download(filePath, base);
+      return;
+    }
+    res.type('video/mp4');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(filePath);
+  } catch (err) {
+    const status = err.status || (err.code === 'ICLOUD_OFFLINE' ? 503 : 500);
+    res.status(status).json({ error: err.message, code: err.code || 'RENDER_ERROR' });
+  }
 });
 
 /* ── Image reference library ── */
@@ -497,6 +551,175 @@ app.post('/api/scripts/clone', async (req, res) => {
   }
 });
 
+/* ── Creative Studio tools (Arcads playbook → our Grok/fal keys) ── */
+
+app.get('/api/tools/formulas', (_req, res) => {
+  res.json(listCreativeFormulas());
+});
+
+app.post('/api/tools/dialogue-check', (req, res) => {
+  const { dialogue, durationSec } = req.body || {};
+  res.json(checkDialogueDuration(dialogue, durationSec));
+});
+
+app.post('/api/tools/ugc-still-prompt', (req, res) => {
+  try {
+    const prompt = buildUgcStillPrompt({ brand: getBrand(), ...(req.body || {}) });
+    res.json({ prompt });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+/** Cast lock sheet — optional save to brand.castBrief */
+app.post('/api/tools/cast-sheet', (req, res) => {
+  try {
+    const body = req.body || {};
+    const result = buildCastSheet({ brand: getBrand(), ...body });
+    if (body.saveToBrand) {
+      saveBrandOverrides({ castBrief: result.briefLine });
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/tools/character-sheet/preview', (req, res) => {
+  try {
+    const expanded = previewCharacterSheet(req.body?.description, getBrand());
+    res.json(expanded);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/tools/character-sheet/hero', async (req, res) => {
+  try {
+    const result = await generateHeroStill({
+      description: req.body?.description,
+      aspectRatio: req.body?.aspectRatio || '9:16',
+      brand: getBrand(),
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[character-sheet/hero]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code, details: err.details });
+  }
+});
+
+app.post('/api/tools/character-sheet/angles', async (req, res) => {
+  try {
+    const result = await generateCastAngles({
+      heroImageUrl: req.body?.heroImageUrl,
+      basePrompt: req.body?.basePrompt,
+      angleIds: req.body?.angleIds,
+      aspectRatio: req.body?.aspectRatio || '9:16',
+      saveToLibrary: req.body?.saveToLibrary !== false,
+      castName: req.body?.castName || 'cast',
+      tags: req.body?.tags || [],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[character-sheet/angles]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code, details: err.details });
+  }
+});
+
+app.post('/api/tools/character-sheet/full', async (req, res) => {
+  try {
+    const result = await generateFullCharacterSheet({
+      description: req.body?.description,
+      aspectRatio: req.body?.aspectRatio || '9:16',
+      brand: getBrand(),
+      saveToLibrary: req.body?.saveToLibrary !== false,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[character-sheet/full]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code, details: err.details });
+  }
+});
+
+app.post('/api/tools/clone/ad-image', async (req, res) => {
+  try {
+    const { dataUrl, base64, mediaType } = req.body || {};
+    const result = await cloneAdImage({ dataUrl, base64, mediaType, brand: getBrand() });
+    logGeneration({ kind: 'clone_ad_image', model: result.model, provider: result.provider });
+    res.json(result);
+  } catch (err) {
+    console.error('[clone/ad-image]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code });
+  }
+});
+
+app.post('/api/tools/clone/video', async (req, res) => {
+  try {
+    const { dataUrl, base64, mediaType, description } = req.body || {};
+    const result = await cloneVideoStructure({
+      dataUrl,
+      base64,
+      mediaType,
+      description,
+      brand: getBrand(),
+    });
+    logGeneration({ kind: 'clone_video', model: result.model, provider: result.provider });
+    res.json(result);
+  } catch (err) {
+    console.error('[clone/video]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code });
+  }
+});
+
+app.get('/api/tools/native-ui', (_req, res) => {
+  res.json({ templates: listNativeUiTemplates() });
+});
+
+app.get('/api/tools/native-ui/:id', (req, res) => {
+  const t = getNativeUiTemplate(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  try {
+    const built = buildNativeUiPrompt(req.params.id, req.query || {}, getBrand());
+    res.json({ template: listNativeUiTemplates().find((x) => x.id === t.id), built });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/tools/native-ui/preview', (req, res) => {
+  try {
+    const { templateId, overrides } = req.body || {};
+    const built = buildNativeUiPrompt(templateId, overrides || {}, getBrand());
+    res.json(built);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/tools/native-ui/generate', async (req, res) => {
+  try {
+    const { templateId, overrides, n } = req.body || {};
+    const result = await generateNativeUiAd({
+      templateId,
+      overrides: overrides || {},
+      brand: getBrand(),
+      n,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[native-ui/generate]', err.message);
+    res.status(err.status || 500).json({ error: err.message, code: err.code, details: err.details });
+  }
+});
+
+app.get('/api/tools/audit', (req, res) => {
+  const limit = Number(req.query.limit) || 40;
+  res.json({
+    stats: auditStats(),
+    entries: listGenerations({ limit, kind: req.query.kind || undefined }),
+  });
+});
+
 app.get('/api/brand', (_req, res) => {
   res.json(getBrandPublic());
 });
@@ -524,6 +747,9 @@ app.put('/api/brand', (req, res) => {
       'defaultVideoStyleId',
       'defaultFlowId',
       'defaultVideoModelId',
+      'castBrief',
+      'environment',
+      'wardrobe',
     ];
     const body = req.body || {};
     const partial = {};
@@ -646,6 +872,23 @@ app.post('/api/story/rematerialize', (req, res) => {
 });
 
 /**
+ * Regen spoken script on a story reel (keep stills/beat videos; clear final for re-assemble).
+ * body: { item, rotateAngle?: boolean }
+ */
+app.post('/api/story/regen-script', (req, res) => {
+  try {
+    const { item, rotateAngle } = req.body || {};
+    if (!item) return res.status(400).json({ error: 'item is required' });
+    const next = regenItemScript(item, {
+      rotateAngle: rotateAngle !== false,
+    });
+    res.json({ item: next });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+/**
  * Assemble multi-beat videos into one story reel + titles/graphics.
  * body: { item }  — item.beats[].videoUrl required
  *
@@ -741,6 +984,15 @@ app.post('/api/generate/image', async (req, res) => {
       referenceImage: matchReference || refs.length ? refs[0] || null : null,
       referenceImages: refs.length > 1 ? refs.slice(1) : null,
     });
+    logGeneration({
+      kind: 'image',
+      model: result.model || 'grok-imagine',
+      mode: result.mode || 'generate',
+      aspectRatio: ratio,
+      n: result.urls?.length || 1,
+      provider: 'xai',
+      workspaceId: getActiveWorkspaceId(),
+    });
     res.json({
       imageUrl: result.urls[0],
       imageUrls: result.urls,
@@ -817,6 +1069,21 @@ app.post('/api/generate/video', async (req, res) => {
       generateAudio: wantAudio,
       dialogue: spokenLine,
     });
+    const cost = estimateVideoCost({
+      modelId: resolvedModel,
+      beatCount: 1,
+      durationSec: duration != null ? Number(duration) : 5,
+      generateAudio: wantAudio,
+    });
+    logGeneration({
+      kind: 'video_start',
+      modelId: started.modelId,
+      provider: started.provider,
+      generateAudio: wantAudio,
+      aspectRatio: ratio,
+      estUsd: cost.estimatedUsd,
+      workspaceId: getActiveWorkspaceId(),
+    });
     res.json({
       status: 'pending',
       requestId: started.requestId,
@@ -824,6 +1091,7 @@ app.post('/api/generate/video', async (req, res) => {
       modelLabel: started.modelLabel,
       provider: started.provider,
       generateAudio: wantAudio,
+      costEstimate: cost,
     });
   } catch (err) {
     console.error('[video]', err.message);

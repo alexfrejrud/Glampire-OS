@@ -50,6 +50,19 @@ Still ads are **not** freeform AI design. Split responsibilities:
 
 Do not ask the image model to paint brand type or logos.
 
+## Creative tools (Arcads playbook → our keys)
+
+Do **not** route through Arcads. Creative upgrades live in-studio:
+
+| Area | Location |
+|---|---|
+| UGC 9-layer + cast formulas | `server/creativeFormulas.js` (auto-injected into UGC styles) |
+| Character sheet / cast lock / clone / native UI / audit | Tools tab · `src/components/CreativeTools.jsx` |
+| Skill | `.agents/skills/creative-prompting/SKILL.md` |
+| Pipes | `XAI_API_KEY` (Grok) · `FAL_KEY` (Kling/Seedance/MiniMax) |
+
+Native UI ads (model-painted type) are a **separate lane** from Brand OS plate + `adCompose`.
+
 ## Multi-workspace story captions (platform rule)
 
 Spoken captions are **workspace-agnostic**. Same pipeline for Taskiz, WEPOC, and every new client.

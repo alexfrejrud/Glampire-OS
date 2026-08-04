@@ -32,6 +32,7 @@ server/data/hyperframes/
 server/data/video-jobs.json
 server/data/e2e-story-last.json
 server/data/active-workspace.json
+server/data/gen-audit.jsonl
 server/data/refs/files/
 
 # Optional local overrides

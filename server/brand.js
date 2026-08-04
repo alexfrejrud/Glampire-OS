@@ -11,6 +11,12 @@ import {
 } from './brandLoader.js';
 import { brandIcpPromptLock, brandTalkCharacter, brandAdaptStylePack } from './brandCast.js';
 import { getVideoStyle } from './videoStyles.js';
+import {
+  isUgcStyle,
+  ugcAuthenticitySuffix,
+  buildUgcVideoPrompt,
+  stripForbiddenHype,
+} from './creativeFormulas.js';
 
 /** Live brand for the active workspace (AsyncLocalStorage or persisted active). */
 export function getBrand() {
@@ -115,33 +121,43 @@ export function buildImagePrompt(idea, { styleId } = {}) {
 
   const brief = idea.batchBrief || idea.brief || null;
 
-  return [
-    `Photorealistic marketing photograph (not an illustration, not a graphic design mockup).`,
-    `Scene: ${subject}.`,
-    brandIcpPromptLock(b),
-    styleBlock
-      ? `Video style pack: ${styleBlock}.`
-      : `Style: ${b.photographyStyle}.`,
-    brief
-      ? `Batch casting / direction brief (follow closely for subject identity, setting, energy): ${brief}.`
-      : '',
-    idea.styleCamera || style?.camera ? `Camera: ${idea.styleCamera || style.camera}.` : '',
-    idea.styleLighting || style?.lighting
-      ? `Lighting: ${idea.styleLighting || style.lighting}.`
-      : '',
-    idea.styleFraming || style?.framing
-      ? `Framing: ${idea.styleFraming || style.framing}.`
-      : '',
-    subjectRules ? `Subject rules: ${subjectRules}.` : '',
-    `Composition: ${b.compositionNotes}`,
-    `Color grade: ${idea.styleColorGrade || style?.colorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
-    `Aspect: ${formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1'} framing.`,
-    `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}.`,
-    `Output must be a clean photo plate only — typography and logo will be added later in HyperFrames / design overlay.`,
-    sid ? `Style id: ${sid}.` : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const ugcAuth = ugcAuthenticitySuffix(sid);
+
+  const castNote = idea.castId
+    ? `Cast lock for THIS creative only: ${idea.castId}. Do not reuse faces/rooms from other ads in the batch.`
+    : 'This plate is a unique creative — distinct face, wardrobe, and room from other batch items.';
+
+  return stripForbiddenHype(
+    [
+      `Photorealistic marketing photograph (not an illustration, not a graphic design mockup).`,
+      `Scene: ${subject}.`,
+      brandIcpPromptLock(b),
+      castNote,
+      styleBlock
+        ? `Video style pack: ${styleBlock}.`
+        : `Style: ${b.photographyStyle}.`,
+      brief
+        ? `Batch casting / direction brief (follow closely for subject identity, setting, energy): ${brief}.`
+        : '',
+      idea.styleCamera || style?.camera ? `Camera: ${idea.styleCamera || style.camera}.` : '',
+      idea.styleLighting || style?.lighting
+        ? `Lighting: ${idea.styleLighting || style.lighting}.`
+        : '',
+      idea.styleFraming || style?.framing
+        ? `Framing: ${idea.styleFraming || style.framing}.`
+        : '',
+      subjectRules ? `Subject rules: ${subjectRules}.` : '',
+      ugcAuth ? `UGC authenticity: ${ugcAuth}.` : '',
+      `Composition: ${b.compositionNotes}`,
+      `Color grade: ${idea.styleColorGrade || style?.colorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
+      `Aspect: ${formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1'} framing.`,
+      `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}. Never clone the same face, hoodie, or room as other creatives in this campaign.`,
+      `Output must be a clean photo plate only — typography and logo will be added later in HyperFrames / design overlay.`,
+      sid ? `Style id: ${sid}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
 }
 
 export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
@@ -176,24 +192,51 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
   const brief = idea.batchBrief || idea.brief || null;
 
   if (talkFraming && dialogue) {
-    return [
-      styleBlock ||
-        `Authentic vertical UGC talking-head. ${cast.character}. Faces camera mid-conversation. ${cast.environment}.`,
-      brandIcpPromptLock(b),
-      motion ? `Performance: ${motion}.` : '',
-      roleHint,
-      brief
-        ? `Casting / performance brief for this batch: ${brief}. Match subject identity and energy to brand ICP only.`
-        : `On-camera person must match ICP: ${cast.icp}.`,
-      wantNativeSpeech
-        ? `DIALOGUE (speak this line clearly in first person as the on-camera subject): "${dialogue}" Lip sync + native speech audio.`
-        : `The subject is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
-      'Eye contact with the lens. Peer-to-peer energy — not a radio announcer.',
-      'No text, logos, captions, title cards, or UI burned into the video.',
-      `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No silent staring at phone as the main action.`,
-    ]
-      .filter(Boolean)
-      .join(' ');
+    // UGC lanes: full 9-layer authenticity stack (Arcads playbook → our pipes)
+    if (isUgcStyle(sid) || wantNativeSpeech) {
+      const ugc = buildUgcVideoPrompt({
+        brand: b,
+        styleVideoBlock: styleBlock,
+        dialogue,
+        beatRole,
+        beatMotion: motion,
+        generateAudio: wantNativeSpeech,
+        durationSec: idea.durationSec || idea.duration || 5,
+      });
+      return stripForbiddenHype(
+        [
+          ugc.prompt,
+          brandIcpPromptLock(b),
+          brief
+            ? `Casting / performance brief for this batch: ${brief}.`
+            : `On-camera person must match ICP: ${cast.icp}.`,
+          roleHint,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
+    }
+
+    return stripForbiddenHype(
+      [
+        styleBlock ||
+          `Authentic vertical UGC talking-head. ${cast.character}. Faces camera mid-conversation. ${cast.environment}.`,
+        brandIcpPromptLock(b),
+        motion ? `Performance: ${motion}.` : '',
+        roleHint,
+        brief
+          ? `Casting / performance brief for this batch: ${brief}. Match subject identity and energy to brand ICP only.`
+          : `On-camera person must match ICP: ${cast.icp}.`,
+        wantNativeSpeech
+          ? `DIALOGUE (speak this line clearly in first person as the on-camera subject): "${dialogue}" Lip sync + native speech audio.`
+          : `The subject is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
+        'Eye contact with the lens. Peer-to-peer energy — not a radio announcer.',
+        'No text, logos, captions, title cards, or UI burned into the video.',
+        `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No silent staring at phone as the main action.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    );
   }
 
   if (styleBlock) {

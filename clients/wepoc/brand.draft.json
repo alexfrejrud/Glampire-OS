@@ -4,7 +4,7 @@
   "website": "https://wepoc.co/",
   "category": "music community",
   "oneLiner": "Create, consult & connect in a community built for independent artists of color",
-  "supporting": "Music industry education, Virtual A&R guidance, and real networking with artists and professionals \u2014 all in one app for $29.99/year.",
+  "supporting": "Music industry education, Virtual A&R guidance, and real networking with artists and professionals — all in one app for $29.99/year.",
   "promise": "Learn how the music business works, grow your network, and make smarter career moves without the hype.",
   "primaryCta": "See How It Works",
   "secondaryCta": "Download App",
@@ -67,9 +67,9 @@
     "Industry-leading network"
   ],
   "photographyStyle": "documentary commercial photography, authentic subjects, natural light, single clear subject, intentional negative space for text overlay",
-  "imageNegatives": "no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clich\u00e9s",
+  "imageNegatives": "no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clichés",
   "compositionNotes": "One hero moment, clean negative space for later overlay, medium shot preferred.",
-  "voice": "Authentic, confident, culturally aware, and encouraging\u2014music-industry expertise expressed in clear, practical language without hype or corporate jargon.",
+  "voice": "Authentic, confident, culturally aware, and encouraging—music-industry expertise expressed in clear, practical language without hype or corporate jargon.",
   "pricingModel": "$29.99/year for WEPOC membership",
   "keyFeatures": [
     "Music industry education and exclusive insights",
@@ -87,11 +87,11 @@
     "DISCO"
   ],
   "communities": [
-    "Reddit \u2014 r/WeAreTheMusicMakers",
-    "Reddit \u2014 r/musicmarketing",
-    "Reddit \u2014 r/musicindustry",
-    "Reddit \u2014 r/independentmusic",
-    "Reddit \u2014 r/Songwriters"
+    "Reddit — r/WeAreTheMusicMakers",
+    "Reddit — r/musicmarketing",
+    "Reddit — r/musicindustry",
+    "Reddit — r/independentmusic",
+    "Reddit — r/Songwriters"
   ],
   "defaultVideoStyleId": "documentary_commercial",
   "defaultFlowId": "pain_to_cta",
@@ -205,7 +205,7 @@
     {
       "name": "Music Sharing & Management for Artists",
       "url": "https://www.disco.ac/solutions/artists-creators",
-      "claim": "Share your music like a pro. Manage files, create playlists, and build EPKs with DISCO\u2014the platform trusted by the industry.",
+      "claim": "Share your music like a pro. Manage files, create playlists, and build EPKs with DISCO—the platform trusted by the industry.",
       "cta": "Pricing",
       "pricing": "free",
       "topFeatures": [
@@ -217,11 +217,11 @@
     }
   ],
   "adAngles": [
-    "Simple & focused \u2014 not another bloated all-in-one platform",
+    "Simple & focused — not another bloated all-in-one platform",
     "Own the job-to-be-done the market under-serves",
-    "Peer voice from real customers \u2014 not brochure SaaS",
+    "Peer voice from real customers — not brochure SaaS",
     "Show the before/after friction competitors gloss over",
-    "Customer language: \u201ct just another social platform. It\u201d",
+    "Customer language: “t just another social platform. It”",
     "Promise: AI assistant and community for creative people",
     "Feature demo: Music industry education and exclusive insights24/7 Virtual A&R career guidanceNetworking with artists and industry professionalsGlobal creator collaborationArtist development resourcesCommunity-driven opportunities",
     "Before / after the old workflow",

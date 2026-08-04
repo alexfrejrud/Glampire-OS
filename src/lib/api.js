@@ -131,6 +131,13 @@ export const api = {
             body: JSON.stringify(body),
             timeoutMs: 300000,
         }),
+    /** New spoken lines for a story reel — keeps stills; clears assembled final */
+    regenStoryScript: (body) =>
+        req('/api/story/regen-script', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 30000,
+        }),
     assembleStory: (body) =>
         req('/api/story/assemble', {
             method: 'POST',
@@ -176,6 +183,66 @@ export const api = {
         req('/api/refs/analyze', { method: 'POST', body: JSON.stringify(body) }),
     cloneScript: (body) =>
         req('/api/scripts/clone', { method: 'POST', body: JSON.stringify(body) }),
+
+    // Creative tools (Grok/fal only — Arcads playbook port)
+    creativeFormulas: () => req('/api/tools/formulas'),
+    dialogueCheck: (body) =>
+        req('/api/tools/dialogue-check', { method: 'POST', body: JSON.stringify(body) }),
+    ugcStillPrompt: (body) =>
+        req('/api/tools/ugc-still-prompt', { method: 'POST', body: JSON.stringify(body) }),
+    castSheet: (body) =>
+        req('/api/tools/cast-sheet', { method: 'POST', body: JSON.stringify(body) }),
+    characterSheetPreview: (body) =>
+        req('/api/tools/character-sheet/preview', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
+    characterSheetHero: (body) =>
+        req('/api/tools/character-sheet/hero', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 180000,
+        }),
+    characterSheetAngles: (body) =>
+        req('/api/tools/character-sheet/angles', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 600000,
+        }),
+    characterSheetFull: (body) =>
+        req('/api/tools/character-sheet/full', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 900000,
+        }),
+    cloneAdImage: (body) =>
+        req('/api/tools/clone/ad-image', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 180000,
+        }),
+    cloneVideoStructure: (body) =>
+        req('/api/tools/clone/video', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 180000,
+        }),
+    listNativeUiTemplates: () => req('/api/tools/native-ui'),
+    previewNativeUi: (body) =>
+        req('/api/tools/native-ui/preview', { method: 'POST', body: JSON.stringify(body) }),
+    generateNativeUi: (body) =>
+        req('/api/tools/native-ui/generate', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 180000,
+        }),
+    genAudit: (params = {}) => {
+        const q = new URLSearchParams();
+        if (params.limit) q.set('limit', String(params.limit));
+        if (params.kind) q.set('kind', params.kind);
+        const qs = q.toString();
+        return req(`/api/tools/audit${qs ? `?${qs}` : ''}`);
+    },
 };
 
 /** Poll unified video job (Grok or fal) until done */

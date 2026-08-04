@@ -626,10 +626,39 @@ export function listRenders() {
         }));
 }
 
+/**
+ * Resolve a render path under server/data/renders.
+ * Returns null if missing. Throws with code ICLOUD_OFFLINE when the file is
+ * listed but unreadable (common when macOS "Optimize Mac Storage" evicts
+ * large MP4s from Documents/iCloud Drive).
+ */
 export function resolveRenderPath(fileName) {
     ensureDirs();
     const safe = path.basename(fileName);
     const full = path.join(OUT_DIR, safe);
     if (!fs.existsSync(full)) return null;
+    try {
+        const st = fs.statSync(full);
+        if (st.size > 0) {
+            const fd = fs.openSync(full, 'r');
+            try {
+                const buf = Buffer.alloc(16);
+                const n = fs.readSync(fd, buf, 0, 16, 0);
+                if (n === 0) {
+                    const err = new Error(
+                        'Video is not on this Mac yet (iCloud offline). Finder → right-click the file → Download Now, or disable Optimize Mac Storage for Documents. Then try Download again.'
+                    );
+                    err.code = 'ICLOUD_OFFLINE';
+                    err.status = 503;
+                    throw err;
+                }
+            } finally {
+                fs.closeSync(fd);
+            }
+        }
+    } catch (e) {
+        if (e.code === 'ICLOUD_OFFLINE') throw e;
+        // Permission / other — still try sendFile
+    }
     return full;
 }

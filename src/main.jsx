@@ -35,6 +35,7 @@ import {
     Monitor,
     Building2,
     Wrench,
+    MessageSquareText,
 } from 'lucide-react';
 import { Theme } from '@astryxdesign/core/theme';
 import { AppShell } from '@astryxdesign/core/AppShell';
@@ -55,11 +56,20 @@ import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Switch } from '@astryxdesign/core/Switch';
+import { Selector } from '@astryxdesign/core/Selector';
 import { api, waitForVideo } from './lib/api';
 import { loadStore, saveStore, upsertItem } from './lib/store';
 import { getWorkspaceId, setWorkspaceId } from './lib/workspace';
 import { glampireTheme, loadThemeMode, saveThemeMode } from './theme';
 import { OnboardingWizard } from './components/OnboardingWizard';
+import {
+    CharacterSheetView,
+    CastLockView,
+    CreativeCloneView,
+    NativeUiAdsView,
+    UgcFormulaView,
+    GenAuditView,
+} from './components/CreativeTools';
 import './styles.css';
 import './story-styles.css';
 
@@ -84,11 +94,23 @@ function FormatIcon({ format }) {
     return <Square size={14} />;
 }
 
-/** Best media URL for download (story final → reel → composed ad → still). */
+/**
+ * Best media URL for download (story final → reel → composed ad → still).
+ * Prefer same-origin /api/renders/* so download never depends on xAI CORS.
+ */
 function mediaDownloadUrl(item) {
     if (!item) return null;
     if (item.format === 'reel') {
-        return item.composedVideoUrl || item.finalVideoUrl || item.videoUrl || null;
+        const candidates = [
+            item.composedVideoUrl,
+            item.finalVideoUrl,
+            item.videoUrl,
+            // Last-ditch: if id matches a local final (re-attach often sets these)
+            item.id ? `/api/renders/${item.id}-final.mp4` : null,
+        ].filter(Boolean);
+        // Prefer local studio renders over external vidgen URLs (CORS blocks fetch download)
+        const local = candidates.find((u) => String(u).startsWith('/api/renders/'));
+        return local || candidates[0] || null;
     }
     if (item.format === 'carousel') {
         return item.slides?.find((s) => s.imageUrl)?.imageUrl || item.imageUrl || null;
@@ -110,26 +132,80 @@ function mediaDownloadName(item, url) {
     return `${base || item?.id || 'image'}.jpg`;
 }
 
-/** Force-download media (works for /api/renders/* same-origin). */
+/**
+ * Force-download media.
+ * Same-origin /api/renders/* uses <a download> (reliable for large MP4s; no full-file fetch).
+ * Absolute same-origin also uses anchor. External URLs need fetch (CORS) or fail clearly.
+ */
 async function downloadMedia(url, filename) {
     if (!url) throw new Error('No media to download');
-    // data: / blob: can open directly
+    const name = filename || 'download';
+
+    // data: / blob:
     if (url.startsWith('data:') || url.startsWith('blob:')) {
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename || 'download';
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         a.remove();
         return;
     }
-    const res = await fetch(url);
+
+    // Prefer relative /api paths (Vite proxy → :8787) — force attachment query for browsers
+    const isRelativeApi = url.startsWith('/api/');
+    const isSameOrigin =
+        isRelativeApi ||
+        (typeof window !== 'undefined' &&
+            (url.startsWith(window.location.origin) || url.startsWith('/')));
+
+    if (isSameOrigin) {
+        let href = url;
+        // Ensure download disposition on local renders
+        if (href.includes('/api/renders/') && !href.includes('download=')) {
+            href += (href.includes('?') ? '&' : '?') + 'download=1';
+        }
+        try {
+            // Quick health probe so we don't silent-fail when API is down
+            if (isRelativeApi) {
+                const probe = await fetch('/api/health', { method: 'GET' }).catch(() => null);
+                if (!probe?.ok) {
+                    throw new Error(
+                        'API offline — start with npm run dev (port 8787). Then try Download again.'
+                    );
+                }
+            }
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = name;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            return;
+        } catch (e) {
+            if (e.message?.includes('API offline')) throw e;
+            // Fall through to blob fetch
+        }
+    }
+
+    // External or fallback: fetch → blob (needs CORS for cross-origin)
+    let res;
+    try {
+        res = await fetch(url);
+    } catch (networkErr) {
+        throw new Error(
+            networkErr?.message === 'Failed to fetch' || networkErr?.name === 'TypeError'
+                ? 'Failed to fetch — API may be offline, or the video URL is blocked (CORS). Prefer queue “Build story” finals under /api/renders/.'
+                : networkErr.message || 'Download failed'
+        );
+    }
     if (!res.ok) throw new Error(`Download failed (${res.status})`);
     const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = filename || 'download';
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -203,18 +279,25 @@ function ChoiceCard({ label, description, meta, selected, disabled, onSelect }) 
     );
 }
 
-function GlampireMark() {
+/** Official Glampire OS mark — platform logo (not client Brand OS). */
+function GlampireMark({ size = 22 }) {
     return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <rect x="3" y="3" width="18" height="18" rx="6" fill="currentColor" opacity="0.15" />
-            <path
-                d="M8 15.5V8.5L12 13l4-4.5v7"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
+        <img
+            src="/glampire-mark.png"
+            alt=""
+            width={size}
+            height={size}
+            aria-hidden
+            draggable={false}
+            style={{
+                width: size,
+                height: size,
+                borderRadius: 6,
+                display: 'block',
+                objectFit: 'contain',
+                flexShrink: 0,
+            }}
+        />
     );
 }
 
@@ -384,15 +467,27 @@ function StudioSideNav({
     );
 }
 
-/** Character RE + Script cloner + Ref library under one Tools area */
+const TOOL_TAB_IDS = [
+    'character',
+    'cast',
+    'sheet',
+    'ugc',
+    'clone',
+    'native',
+    'scripts',
+    'library',
+    'audit',
+];
+
+/** Character RE + creative tools + Ref library under one Tools area */
 function ToolsView({ brand, onToast, initialTool = 'character' }) {
     const [tool, setTool] = useState(() => {
-        if (['character', 'scripts', 'library'].includes(initialTool)) return initialTool;
+        if (TOOL_TAB_IDS.includes(initialTool)) return initialTool;
         return 'character';
     });
 
     useEffect(() => {
-        if (['character', 'scripts', 'library'].includes(initialTool)) {
+        if (TOOL_TAB_IDS.includes(initialTool)) {
             setTool(initialTool);
         }
     }, [initialTool]);
@@ -401,12 +496,24 @@ function ToolsView({ brand, onToast, initialTool = 'character' }) {
         <VStack gap={4} as="main">
             <TabList value={tool} onChange={setTool} hasDivider>
                 <Tab value="character" label="Character RE" />
+                <Tab value="sheet" label="Cast sheet" />
+                <Tab value="cast" label="Cast lock" />
+                <Tab value="ugc" label="UGC formula" />
+                <Tab value="clone" label="Clone creative" />
+                <Tab value="native" label="Native UI ads" />
                 <Tab value="scripts" label="Script cloner" />
                 <Tab value="library" label="Ref library" />
+                <Tab value="audit" label="Gen audit" />
             </TabList>
             {tool === 'character' && <CharacterView onToast={onToast} />}
+            {tool === 'sheet' && <CharacterSheetView onToast={onToast} />}
+            {tool === 'cast' && <CastLockView brand={brand} onToast={onToast} />}
+            {tool === 'ugc' && <UgcFormulaView onToast={onToast} />}
+            {tool === 'clone' && <CreativeCloneView onToast={onToast} />}
+            {tool === 'native' && <NativeUiAdsView onToast={onToast} />}
             {tool === 'scripts' && <ScriptClonerView brand={brand} onToast={onToast} />}
             {tool === 'library' && <LibraryView onToast={onToast} />}
+            {tool === 'audit' && <GenAuditView onToast={onToast} />}
         </VStack>
     );
 }
@@ -1285,6 +1392,7 @@ function ItemCard({
     onGenerateImage,
     onAnimate,
     onBuildStory,
+    onRegenScript,
     onApprove,
     onUnapprove,
     onPublish,
@@ -1356,39 +1464,41 @@ function ItemCard({
 
             <div className="item-copy">
                 <h3>{item.headline}</h3>
-                <p>{item.body}</p>
+                <p>
+                    {item.format === 'reel' && item.beats?.length
+                        ? item.beats
+                              .map((b) => b.dialogue || b.voiceLine)
+                              .filter(Boolean)
+                              .join(' ')
+                        : item.body}
+                </p>
                 <div className="cta-pill">{item.cta}</div>
                 {item.format === 'reel' && videoModels?.length > 0 && (
                     <div
                         className="inline-model-pick"
                         onClick={(e) => e.stopPropagation()}
-                        role="group"
-                        aria-label="Video model"
+                        onMouseDown={(e) => e.stopPropagation()}
                     >
-                        <span>Video model</span>
-                        <div className="model-pills">
-                            {videoModels.map((m) => {
-                                const active = (item.videoModelId || 'grok') === m.id;
-                                const offline = m.available === false;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        className={`model-pill${active ? ' on' : ''}`}
-                                        disabled={isBusy || offline}
-                                        title={
-                                            offline
-                                                ? `${m.label} offline`
-                                                : m.costLabel || m.description || m.label
-                                        }
-                                        onClick={() => onChangeVideoModel?.(item, m.id)}
-                                    >
-                                        {m.label}
-                                        {offline ? ' · offline' : ''}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <Selector
+                            label="Video model"
+                            size="sm"
+                            width="100%"
+                            isDisabled={isBusy}
+                            value={item.videoModelId || 'grok'}
+                            placeholder="Choose model"
+                            options={(videoModels || []).map((m) => ({
+                                value: m.id,
+                                label:
+                                    m.available === false
+                                        ? `${m.label} · offline`
+                                        : m.label,
+                                disabled: m.available === false,
+                                description: m.costLabel || m.description || undefined,
+                            }))}
+                            onChange={(value) => {
+                                if (value) onChangeVideoModel?.(item, value);
+                            }}
+                        />
                     </div>
                 )}
             </div>
@@ -1427,6 +1537,22 @@ function ItemCard({
                             ? 'Regen stills'
                             : 'Generate stills'}
                 </button>
+
+                {isStoryReel && (
+                    <button
+                        className="ghost"
+                        disabled={isBusy}
+                        onClick={() => onRegenScript?.(item)}
+                        title="New spoken lines (hook / tension / resolve). Keeps stills. Re-animate or rebuild story after."
+                    >
+                        {isBusy ? (
+                            <Loader2 className="spin" size={14} />
+                        ) : (
+                            <MessageSquareText size={14} />
+                        )}
+                        Regen script
+                    </button>
+                )}
 
                 {item.format === 'reel' && (
                     <button className="ghost" disabled={isBusy || !canAnimate} onClick={() => onAnimate(item)}>
@@ -1642,6 +1768,7 @@ function QueueView({
     onGenerateImage,
     onAnimate,
     onBuildStory,
+    onRegenScript,
     onApprove,
     onUnapprove,
     onPublish,
@@ -1763,6 +1890,7 @@ function QueueView({
                         onGenerateImage={onGenerateImage}
                         onAnimate={onAnimate}
                         onBuildStory={onBuildStory}
+                        onRegenScript={onRegenScript}
                         onApprove={onApprove}
                         onUnapprove={onUnapprove}
                         onPublish={onPublish}
@@ -3692,6 +3820,34 @@ function App() {
         }));
     }
 
+    async function handleRegenScript(item) {
+        if (!item?.beats?.length) {
+            setToast('Regen script is for story reels only');
+            return;
+        }
+        setBusy(item.id);
+        try {
+            setToast('Rolling new script…');
+            const res = await api.regenStoryScript({ item, rotateAngle: true });
+            const next = res.item || res;
+            // Merge into store — keep id, wipe final so user rebuilds captions
+            updateStore((prev) => ({
+                ...prev,
+                items: prev.items.map((it) => (it.id === item.id ? { ...it, ...next, id: item.id } : it)),
+            }));
+            const hook = next.beats?.[0]?.dialogue || next.dialogueHook || '';
+            setToast(
+                hook
+                    ? `New script: “${hook.slice(0, 56)}${hook.length > 56 ? '…' : ''}” · re-animate or rebuild story for captions`
+                    : 'Script updated · re-animate or rebuild story for captions'
+            );
+        } catch (e) {
+            setToast(e.message || 'Regen script failed');
+        } finally {
+            setBusy(null);
+        }
+    }
+
     async function handleGenerateImage(item) {
         setBusy(item.id);
         patchItem(item.id, { status: 'generating', error: null });
@@ -4189,7 +4345,8 @@ function App() {
                         className={`studio-main${view === 'create' ? ' studio-main--create' : ''}`}
                     >
                         {!bootstrapped ? (
-                            <VStack gap={2} padding={4} hAlign="center">
+                            <VStack gap={3} padding={4} hAlign="center">
+                                <GlampireMark size={40} />
                                 <Loader2 className="spin" size={24} />
                                 <Text color="secondary">Loading Glampire OS…</Text>
                             </VStack>
@@ -4243,6 +4400,7 @@ function App() {
                                         onGenerateImage={handleGenerateImage}
                                         onAnimate={handleAnimate}
                                         onBuildStory={handleBuildStory}
+                                        onRegenScript={handleRegenScript}
                                         onApprove={handleApprove}
                                         onUnapprove={handleUnapprove}
                                         onPublish={openPublish}
@@ -4337,6 +4495,13 @@ class ErrorBoundary extends React.Component {
         if (this.state.error) {
             return (
                 <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', maxWidth: 640 }}>
+                    <img
+                        src="/glampire-mark.png"
+                        alt="Glampire OS"
+                        width={40}
+                        height={40}
+                        style={{ borderRadius: 8, marginBottom: 12 }}
+                    />
                     <h1 style={{ fontSize: 20 }}>Glampire OS failed to render</h1>
                     <pre
                         style={{
