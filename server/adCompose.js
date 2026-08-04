@@ -1,11 +1,12 @@
 /**
  * Still-ad compose — plate photo + active workspace Brand OS type/logo.
  *
- * Design system:
- *  - Fonts: Outfit Regular/SemiBold/Bold (bundled) — same as graphicsCompose
- *  - Layout: 1080-base scale, fixed px rhythm (not fuzzy %)
- *  - Type: large headline, readable support, full-width CTA bar
- *  - Logo: active workspace SVG only (never another client's mark)
+ * Multi-workspace rule:
+ *  - Layout math → server/adLayout.js (universal, S = min(w,h))
+ *  - Colors / CTA / logo / optional adDesign → getBrand() Brand OS
+ *  - Never hardcode one client's purple or CTA in layout formulas
+ *
+ * Skill: .agents/skills/ad-typography-and-layout/SKILL.md
  */
 
 import fs from 'fs';
@@ -13,14 +14,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resvg } from '@resvg/resvg-js';
 import { getBrand } from './brand.js';
-import { resolveWorkspaceLogoPath } from './brandLoader.js';
+import { resolveWorkspaceLogoPath, getActiveWorkspaceId, getWorkspaceDir } from './brandLoader.js';
+import {
+  buildLayoutTokens,
+  stackFromBottom,
+  cleanSupport,
+} from './adLayout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FONT_DIR = path.join(__dirname, 'assets', 'fonts');
 const ADS_DIR = path.join(__dirname, 'data', 'renders', 'ads');
-
-/** Match graphicsCompose — Outfit first, safe fallbacks if face missing */
-const FONT = 'Outfit, Arial, Helvetica, sans-serif';
 
 export const AD_TEMPLATES = [
   {
@@ -72,10 +75,45 @@ function ensureAdsDir() {
   return ADS_DIR;
 }
 
-function outfitFontFiles() {
-  return ['Outfit-Regular.ttf', 'Outfit-SemiBold.ttf', 'Outfit-Bold.ttf']
-    .map((n) => path.join(FONT_DIR, n))
-    .filter((p) => fs.existsSync(p));
+/**
+ * Font files: workspace assets/fonts first, else studio default Outfit.
+ * Expected names: *-Regular.ttf, *-SemiBold.ttf, *-Bold.ttf (or Outfit-*).
+ */
+function resolveFontFiles(displayFont = 'Outfit') {
+  const faces = ['Regular', 'SemiBold', 'Bold'];
+  const dirs = [];
+  try {
+    const ws = getActiveWorkspaceId();
+    if (ws) {
+      dirs.push(path.join(getWorkspaceDir(ws), 'assets', 'fonts'));
+    }
+  } catch {
+    /* ignore */
+  }
+  dirs.push(FONT_DIR);
+
+  const found = [];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const face of faces) {
+      const candidates = [
+        path.join(dir, `${displayFont}-${face}.ttf`),
+        path.join(dir, `${displayFont}-${face}.otf`),
+        path.join(dir, `Outfit-${face}.ttf`),
+      ];
+      const hit = candidates.find((p) => fs.existsSync(p));
+      if (hit && !found.includes(hit)) found.push(hit);
+    }
+    if (found.length >= 3) break;
+  }
+  // Absolute fallback
+  if (found.length < 3) {
+    for (const face of faces) {
+      const p = path.join(FONT_DIR, `Outfit-${face}.ttf`);
+      if (fs.existsSync(p) && !found.includes(p)) found.push(p);
+    }
+  }
+  return found;
 }
 
 function resolveLogoPath() {
@@ -170,286 +208,266 @@ async function plateToDataUri(plateUrl) {
   }
 }
 
-function brandColors(brand) {
-  const c = brand.colors || {};
-  return {
-    brand: c.brand || '#9563FF',
-    brandDeep: c.brandDeep || '#663CF6',
-    accent: c.accent || '#ED81FF',
-    dark: c.dark || '#141233',
-    white: '#FFFFFF',
-  };
-}
-
-/**
- * 1080-base design tokens, scaled to canvas width.
- * This is the UI direction — same rhythm every ad.
- */
-function scale(w) {
-  const s = w / 1080;
-  const px = (n) => Math.round(n * s);
-  return {
-    s,
-    px,
-    pad: px(72),
-    gapXs: px(12),
-    gapSm: px(16),
-    gapMd: px(24),
-    gapLg: px(32),
-    gapXl: px(40),
-    // Type — sized so it still reads in a ~300px queue card AND full export
-    h1: px(60),
-    h1Sm: px(52),
-    body: px(28),
-    ctaLabel: px(24),
-    meta: px(18),
-    // CTA bar — full width, product-grade height
-    ctaH: px(76),
-    ctaRadius: px(18),
-    logoW: px(210),
-    logoH: px(Math.round(210 * (28 / 108))),
-    scrim: '#0B0B12',
-  };
-}
-
 /** Absolute-positioned lines — one <text> each (reliable in resvg) */
-function textLines(lines, { x, y0, size, leading, weight, fill, anchor = 'start', opacity = 1 }) {
-  const lh = leading || Math.round(size * 1.15);
+function textLines(
+  lines,
+  { x, y0, size, leading, weight, fill, anchor = 'start', opacity = 1, fontFamily }
+) {
+  const lh = leading || Math.round(size * 1.25);
   const a = anchor !== 'start' ? ` text-anchor="${anchor}"` : '';
   const op = opacity < 1 ? ` fill-opacity="${opacity}"` : '';
-  // Only 400 / 600 / 700 — maps to our three TTF files
-  const w = weight >= 700 ? 700 : weight >= 600 ? 600 : 400;
+  const fw = weight >= 700 ? 700 : weight >= 600 ? 600 : 400;
+  const fam = fontFamily || 'Outfit, Arial, Helvetica, sans-serif';
   return lines
     .map((line, i) => {
       const y = y0 + i * lh;
-      return `<text x="${x}" y="${y}"${a} font-family="${FONT}" font-size="${size}" font-weight="${w}" fill="${fill}"${op}>${escapeXml(line)}</text>`;
+      return `<text x="${x}" y="${y}"${a} font-family="${fam}" font-size="${size}" font-weight="${fw}" fill="${fill}"${op}>${escapeXml(line)}</text>`;
     })
     .join('\n  ');
 }
 
-/** Full-width primary CTA bar (not a tiny pill) */
-function ctaBar({ x, y, width, height, radius, fill, label, labelSize }) {
+/** Full-width primary CTA bar */
+function ctaBar({ x, y, width, height, radius, fill, label, labelSize, fontFamily }) {
   const ty = Math.round(y + height / 2 + labelSize * 0.35);
+  const fam = fontFamily || 'Outfit, Arial, Helvetica, sans-serif';
   return `
   <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${fill}"/>
-  <text x="${x + width / 2}" y="${ty}" text-anchor="middle" font-family="${FONT}" font-size="${labelSize}" font-weight="600" fill="#FFFFFF">${escapeXml(label)}</text>`;
+  <text x="${x + width / 2}" y="${ty}" text-anchor="middle" font-family="${fam}" font-size="${labelSize}" font-weight="600" fill="#FFFFFF">${escapeXml(label)}</text>`;
 }
 
-function cleanSupport(raw) {
-  let s = String(raw || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  // Prefer short on-ad lines
-  if (s.length > 68) s = s.slice(0, 66).replace(/\s+\S*$/, '');
-  return s;
-}
+function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoUri }) {
+  const colors = brand.colors || {};
+  const t = buildLayoutTokens({ w, h, aspectId, brand });
+  const fontFamily = `${t.displayFont}, Arial, Helvetica, sans-serif`;
+  const brandDeep = t.ctaFill;
+  const accent = colors.accent || colors.brand || brandDeep;
 
-function buildSvg({ w, h, templateId, plateDataUri, copy, colors, logoUri }) {
-  const t = scale(w);
   const headline = String(copy.headline || copy.shortHeadline || '').trim();
-  const support = cleanSupport(copy.support || copy.body);
-  const cta = String(copy.cta || 'Learn more').trim();
-  const site = String(copy.website || '')
+  const support = cleanSupport(copy.support || copy.body, headline, {
+    maxLen: 52,
+    dedupe: t.dedupeSupport,
+  });
+  const cta = String(copy.cta || t.primaryCta || 'Learn more').trim();
+  const site = String(copy.website || t.website || '')
     .replace(/^https?:\/\//, '')
     .replace(/\/$/, '');
 
-  const textW = w - t.pad * 2;
-  // ~ chars: Outfit Bold ~0.55em, Regular ~0.5em at our sizes
-  const hChars = Math.max(12, Math.floor(textW / (t.h1 * 0.58)));
-  const bChars = Math.max(16, Math.floor(textW / (t.body * 0.52)));
+  const padX = t.pad;
+  const padBot = t.padBot || t.pad;
+  const textW = w - padX * 2;
+  const hChars = Math.max(14, Math.floor(textW / (t.h1 * 0.62)));
+  const bChars = Math.max(18, Math.floor(textW / (t.body * 0.55)));
+  const maxSupport = t.maxSupportLines || 1;
 
   const plate = plateDataUri
     ? `<image href="${plateDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${w}" height="${h}" fill="${colors.dark}"/>`;
+    : `<rect width="${w}" height="${h}" fill="${t.scrim}"/>`;
 
   const logo = logoUri
-    ? `<image href="${logoUri}" x="${t.pad}" y="${t.pad}" width="${t.logoW}" height="${t.logoH}" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${logoUri}" x="${padX}" y="${t.padTop || t.pad}" width="${t.logoW}" height="${t.logoH}" preserveAspectRatio="xMidYMid meet"/>`
     : '';
 
   // ═══════════ END CARD ═══════════
   if (templateId === 'endcard') {
     const hLines = wrapText(headline, hChars, 3);
-    const sLines = wrapText(support, bChars, 2);
-    const hLead = Math.round(t.h1 * 1.12);
-    const bLead = Math.round(t.body * 1.3);
-    const ctaY = h - t.pad - t.ctaH - t.gapLg - t.meta;
-    const siteY = h - t.pad;
-    // Center type block between top logo area and CTA
-    const logoBlockH = t.pad + t.logoH + t.gapXl;
-    const typeH =
-      hLines.length * hLead + (sLines.length ? t.gapMd + sLines.length * bLead : 0);
-    const zoneTop = logoBlockH + t.gapLg;
-    const zoneBot = ctaY - t.gapXl;
-    const typeStart = zoneTop + Math.max(0, (zoneBot - zoneTop - typeH) / 2);
-    const hY0 = typeStart + Math.round(t.h1 * 0.85);
-    const sY0 = hY0 + (hLines.length - 1) * hLead + t.gapMd + Math.round(t.body * 0.85);
+    const sLines = wrapText(support, bChars, maxSupport);
+    const { ctaY, sY0, hY0 } = stackFromBottom({
+      canvasH: h,
+      padBot,
+      ctaH: t.ctaH,
+      hLines,
+      hLead: t.h1Lead,
+      hSize: t.h1,
+      sLines,
+      sLead: t.bodyLead,
+      sSize: t.body,
+      gapH1Body: t.gapH1Body,
+      gapBodyCta: t.gapBodyCta,
+      reserveMeta: t.gapH1Body + t.meta,
+    });
+    const siteY = h - padBot;
 
+    const hair = Math.max(3, Math.round(t.S * 0.005));
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
     <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${colors.brandDeep}"/>
-      <stop offset="100%" stop-color="${colors.accent}"/>
+      <stop offset="0%" stop-color="${brandDeep}"/>
+      <stop offset="100%" stop-color="${accent}"/>
     </linearGradient>
   </defs>
-  <rect width="${w}" height="${h}" fill="${colors.dark}"/>
+  <rect width="${w}" height="${h}" fill="${t.scrim}"/>
   ${
     plateDataUri
       ? `<image href="${plateDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="0.1"/>
-  <rect width="${w}" height="${h}" fill="${colors.dark}" opacity="0.65"/>`
+  <rect width="${w}" height="${h}" fill="${t.scrim}" opacity="0.65"/>`
       : ''
   }
-  <rect x="0" y="0" width="${w}" height="${t.px(5)}" fill="url(#gAccent)"/>
+  <rect x="0" y="0" width="${w}" height="${hair}" fill="url(#gAccent)"/>
   ${
     logoUri
-      ? `<image href="${logoUri}" x="${(w - t.logoW) / 2}" y="${t.pad + t.gapSm}" width="${t.logoW}" height="${t.logoH}"/>`
+      ? `<image href="${logoUri}" x="${(w - t.logoW) / 2}" y="${t.padTop || padX}" width="${t.logoW}" height="${t.logoH}"/>`
       : ''
   }
   ${textLines(hLines, {
     x: w / 2,
     y0: hY0,
     size: t.h1,
-    leading: hLead,
+    leading: t.h1Lead,
     weight: 700,
-    fill: '#FFFFFF',
+    fill: t.textOnDark,
     anchor: 'middle',
+    fontFamily,
   })}
   ${
-    sLines.length
+    sLines.length && sY0 != null
       ? textLines(sLines, {
           x: w / 2,
           y0: sY0,
           size: t.body,
-          leading: bLead,
+          leading: t.bodyLead,
           weight: 400,
-          fill: '#FFFFFF',
+          fill: t.textOnDark,
           anchor: 'middle',
-          opacity: 0.78,
+          opacity: 0.92,
+          fontFamily,
         })
       : ''
   }
   ${ctaBar({
-    x: t.pad,
+    x: padX,
     y: ctaY,
     width: textW,
     height: t.ctaH,
     radius: t.ctaRadius,
-    fill: colors.brandDeep,
+    fill: brandDeep,
     label: cta,
     labelSize: t.ctaLabel,
+    fontFamily,
   })}
-  ${textLines([site], {
-    x: w / 2,
-    y0: siteY,
-    size: t.meta,
-    weight: 400,
-    fill: '#FFFFFF',
-    anchor: 'middle',
-    opacity: 0.45,
-  })}
+  ${
+    site
+      ? textLines([site], {
+          x: w / 2,
+          y0: siteY,
+          size: t.meta,
+          weight: 400,
+          fill: t.textOnDark,
+          anchor: 'middle',
+          opacity: 0.5,
+          fontFamily,
+        })
+      : ''
+  }
 </svg>`;
   }
 
   // ═══════════ PANEL ═══════════
   if (templateId === 'panel') {
-    const hLines = wrapText(headline, hChars, 3);
-    const sLines = wrapText(support, bChars, 2);
-    const hLead = Math.round(t.h1Sm * 1.12);
-    const bLead = Math.round(t.body * 1.28);
     const hSize = t.h1Sm;
+    const hLead = t.h1SmLead || Math.round(hSize * 1.22);
+    const hLines = wrapText(headline, Math.floor(textW / (hSize * 0.62)), 3);
+    const sLines = wrapText(support, bChars, maxSupport);
 
     const stackH =
-      (logoUri ? t.logoH + t.gapMd : 0) +
+      (logoUri ? t.logoH + t.gapLogoH1 : 0) +
       hLines.length * hLead +
-      (sLines.length ? t.gapSm + sLines.length * bLead : 0) +
-      t.gapLg +
+      (sLines.length ? t.gapH1Body + t.bodyLead : 0) +
+      t.gapBodyCta +
       t.ctaH;
 
     const panelH = Math.min(
-      Math.round(h * 0.5),
-      Math.max(Math.round(h * 0.38), stackH + t.pad * 2)
+      Math.round(h * 0.55),
+      Math.max(Math.round(h * 0.4), stackH + padX * 2)
     );
     const panelY = h - panelH;
-    let cursor = panelY + t.pad;
+    let y = panelY + padX;
 
     const logoBlock = logoUri
-      ? `<image href="${logoUri}" x="${t.pad}" y="${cursor}" width="${t.logoW}" height="${t.logoH}"/>`
+      ? `<image href="${logoUri}" x="${padX}" y="${y}" width="${t.logoW}" height="${t.logoH}"/>`
       : '';
-    if (logoUri) cursor += t.logoH + t.gapMd;
+    if (logoUri) y += t.logoH + t.gapLogoH1;
 
-    const hY0 = cursor + Math.round(hSize * 0.85);
-    cursor = hY0 + (hLines.length - 1) * hLead + t.gapSm;
-    const sY0 = sLines.length ? cursor + Math.round(t.body * 0.85) : cursor;
-    if (sLines.length) cursor = sY0 + (sLines.length - 1) * bLead;
-    cursor += t.gapLg;
-    const ctaY = Math.min(h - t.pad - t.ctaH, cursor);
+    const hY0 = y + Math.round(hSize * 0.85);
+    y = hY0 + (hLines.length - 1) * hLead + t.gapH1Body;
+    const sY0 = sLines.length ? y + Math.round(t.body * 0.85) : y;
+    if (sLines.length) y = sY0 + t.gapBodyCta;
+    else y = hY0 + (hLines.length - 1) * hLead + t.gapBodyCta;
+    const ctaY = Math.min(h - padBot - t.ctaH, y);
+    const hair = Math.max(3, Math.round(t.S * 0.004));
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
     <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${colors.brandDeep}"/>
-      <stop offset="100%" stop-color="${colors.accent}"/>
+      <stop offset="0%" stop-color="${brandDeep}"/>
+      <stop offset="100%" stop-color="${accent}"/>
     </linearGradient>
   </defs>
   ${plate}
-  <rect x="0" y="${panelY}" width="${w}" height="${panelH}" fill="${colors.dark}"/>
-  <rect x="0" y="${panelY}" width="${w}" height="${t.px(4)}" fill="url(#gAccent)"/>
+  <rect x="0" y="${panelY}" width="${w}" height="${panelH}" fill="${t.scrim}"/>
+  <rect x="0" y="${panelY}" width="${w}" height="${hair}" fill="url(#gAccent)"/>
   ${logoBlock}
   ${textLines(hLines, {
-    x: t.pad,
+    x: padX,
     y0: hY0,
     size: hSize,
     leading: hLead,
     weight: 700,
-    fill: '#FFFFFF',
+    fill: t.textOnDark,
+    fontFamily,
   })}
   ${
     sLines.length
       ? textLines(sLines, {
-          x: t.pad,
+          x: padX,
           y0: sY0,
           size: t.body,
-          leading: bLead,
+          leading: t.bodyLead,
           weight: 400,
-          fill: '#FFFFFF',
-          opacity: 0.78,
+          fill: t.textOnDark,
+          opacity: 0.92,
+          fontFamily,
         })
       : ''
   }
   ${ctaBar({
-    x: t.pad,
+    x: padX,
     y: ctaY,
     width: textW,
     height: t.ctaH,
     radius: t.ctaRadius,
-    fill: colors.brandDeep,
+    fill: brandDeep,
     label: cta,
     labelSize: t.ctaLabel,
+    fontFamily,
   })}
 </svg>`;
   }
 
-  // ═══════════ HERO + STORY (photo + bottom type) ═══════════
+  // ═══════════ HERO + STORY ═══════════
   {
-    const isStory = templateId === 'story';
-    const hSize = isStory ? Math.round(t.h1 * 1.05) : t.h1;
-    const hLines = wrapText(headline, Math.floor(hChars * (isStory ? 0.95 : 1)), isStory ? 4 : 3);
-    const sLines = wrapText(support, bChars, 2);
-    const hLead = Math.round(hSize * 1.1);
-    const bLead = Math.round(t.body * 1.28);
+    const isStory = templateId === 'story' || t.profile === 'story';
+    const hSize = isStory ? Math.round(t.h1 * 1.04) : t.h1;
+    const hLead = Math.round(hSize * 1.22);
+    const hLines = wrapText(headline, Math.floor(textW / (hSize * 0.62)), 3);
+    const sLines = wrapText(support, bChars, maxSupport);
 
-    // Bottom-up stack — generous gaps, full-width CTA
-    const ctaY = h - t.pad - t.ctaH;
-    const sY0 = sLines.length
-      ? ctaY - t.gapLg - (sLines.length - 1) * bLead - Math.round(t.body * 0.15)
-      : ctaY;
-    const hY0 =
-      (sLines.length ? sY0 - t.gapMd : ctaY - t.gapLg) - (hLines.length - 1) * hLead;
+    const { ctaY, sY0, hY0, typeTop } = stackFromBottom({
+      canvasH: h,
+      padBot,
+      ctaH: t.ctaH,
+      hLines,
+      hLead,
+      hSize,
+      sLines,
+      sLead: t.bodyLead,
+      sSize: t.body,
+      gapH1Body: t.gapH1Body,
+      gapBodyCta: t.gapBodyCta,
+    });
 
-    // Scrim covers entire type stack with room above
-    const typeTop = hY0 - hSize;
-    const scrimY = Math.max(Math.round(h * 0.35), typeTop - t.gapXl);
+    const scrimY = Math.max(Math.round(h * 0.32), typeTop - padX);
     const topScrimH = Math.round(h * 0.14);
 
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -461,9 +479,9 @@ function buildSvg({ w, h, templateId, plateDataUri, copy, colors, logoUri }) {
     </linearGradient>
     <linearGradient id="scrimBot" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${t.scrim}" stop-opacity="0"/>
-      <stop offset="20%" stop-color="${t.scrim}" stop-opacity="0.55"/>
-      <stop offset="55%" stop-color="${t.scrim}" stop-opacity="0.92"/>
-      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0.97"/>
+      <stop offset="18%" stop-color="${t.scrim}" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="${t.scrim}" stop-opacity="0.93"/>
+      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0.98"/>
     </linearGradient>
   </defs>
   ${plate}
@@ -471,47 +489,50 @@ function buildSvg({ w, h, templateId, plateDataUri, copy, colors, logoUri }) {
   <rect y="${scrimY}" width="${w}" height="${h - scrimY}" fill="url(#scrimBot)"/>
   ${logo}
   ${textLines(hLines, {
-    x: t.pad,
+    x: padX,
     y0: hY0,
     size: hSize,
     leading: hLead,
     weight: 700,
-    fill: '#FFFFFF',
+    fill: t.textOnDark,
+    fontFamily,
   })}
   ${
-    sLines.length
+    sLines.length && sY0 != null
       ? textLines(sLines, {
-          x: t.pad,
+          x: padX,
           y0: sY0,
           size: t.body,
-          leading: bLead,
+          leading: t.bodyLead,
           weight: 400,
-          fill: '#FFFFFF',
-          opacity: 0.88,
+          fill: t.textOnDark,
+          opacity: 0.95,
+          fontFamily,
         })
       : ''
   }
   ${ctaBar({
-    x: t.pad,
+    x: padX,
     y: ctaY,
     width: textW,
     height: t.ctaH,
     radius: t.ctaRadius,
-    fill: colors.brandDeep,
+    fill: brandDeep,
     label: cta,
     labelSize: t.ctaLabel,
+    fontFamily,
   })}
 </svg>`;
   }
 }
 
-function renderSvgToPng(svg, outPath, width) {
-  const fonts = outfitFontFiles();
+function renderSvgToPng(svg, outPath, width, displayFont = 'Outfit') {
+  const fonts = resolveFontFiles(displayFont);
   if (fonts.length < 3) {
     console.warn(
-      '[adCompose] Expected 3 Outfit faces, found',
+      '[adCompose] Expected 3 font faces, found',
       fonts.length,
-      '— type quality will suffer'
+      '— type quality may suffer'
     );
   }
   const resvg = new Resvg(svg, {
@@ -519,9 +540,8 @@ function renderSvgToPng(svg, outPath, width) {
     background: 'rgba(0,0,0,0)',
     font: {
       fontFiles: fonts,
-      // Same as graphicsCompose video cards
       loadSystemFonts: true,
-      defaultFontFamily: 'Outfit',
+      defaultFontFamily: displayFont || 'Outfit',
       defaultFontWeight: 400,
     },
   });
@@ -531,29 +551,29 @@ function renderSvgToPng(svg, outPath, width) {
 
 /**
  * Compose a finished ad PNG from plate + brand copy + template.
+ * Brand OS (active workspace) drives colors, CTA, logo, adDesign.
  */
 export async function composeAd(options = {}) {
   const brand = getBrand();
-  const colors = brandColors(brand);
   const aspectId = options.aspectRatio || options.aspect || '1:1';
   const { w, h } = sizeForAspect(aspectId);
   const index = Number(options.index) || 0;
   const template = pickTemplate(options.templateId || options.template || 'hero', index);
   const templateId = template.id;
+  const tokens = buildLayoutTokens({ w, h, aspectId, brand });
 
   const copy = {
     headline: options.headline || options.copy?.headline,
     shortHeadline: options.shortHeadline || options.copy?.shortHeadline,
     support: options.support || options.body || options.copy?.support || options.copy?.body,
     body: options.body || options.copy?.body,
-    cta: options.cta || options.copy?.cta || brand.primaryCta || 'Learn more',
+    cta: options.cta || options.copy?.cta || brand.primaryCta || tokens.primaryCta,
     website: options.website || options.copy?.website || brand.website || '',
   };
 
   let plateDataUri = null;
   if (options.plateUrl || options.imageUrl || options.plateDataUri) {
     const src = options.plateDataUri || options.plateUrl || options.imageUrl;
-    // Prefer plate over composed ad if both exist
     plateDataUri = await plateToDataUri(src);
   }
 
@@ -567,10 +587,11 @@ export async function composeAd(options = {}) {
   const svg = buildSvg({
     w,
     h,
+    aspectId,
     templateId,
     plateDataUri,
     copy,
-    colors,
+    brand,
     logoUri,
   });
 
@@ -581,7 +602,7 @@ export async function composeAd(options = {}) {
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const fileName = `ad-${id}.png`;
   const outPath = path.join(ADS_DIR, fileName);
-  renderSvgToPng(svg, outPath, w);
+  renderSvgToPng(svg, outPath, w, tokens.displayFont);
 
   return {
     adUrl: `/api/renders/ads/${fileName}?t=${Date.now()}`,
@@ -590,6 +611,8 @@ export async function composeAd(options = {}) {
     height: h,
     templateId,
     aspectRatio: aspectId,
+    profile: tokens.profile,
+    displayFont: tokens.displayFont,
   };
 }
 
