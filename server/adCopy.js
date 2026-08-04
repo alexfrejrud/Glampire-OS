@@ -1,9 +1,11 @@
 /**
  * Brand-locked ad copy for static / social ads.
- * Uses Brand OS + GTM hero bank — no invented claims, filters do-not-say.
+ * Multi-workspace: Brand OS supplies truth; angle banks add variety when fields collide.
+ * Never invent claims — filter do-not-say; never restate headline as support.
  */
 
 import { getBrand } from './brand.js';
+import { isNearDuplicate, cleanSupport } from './adLayout.js';
 
 /** Performance angles — generic; copy is filled from active Brand OS */
 export const AD_ANGLES = [
@@ -215,6 +217,35 @@ function ctaForObjective(brand, objectiveId, index) {
 }
 
 /**
+ * Pick a short support line that does NOT restate the headline.
+ * Still ads need punchy ≤~56 chars — long Brand OS paragraphs lose to angle banks.
+ * Works for any workspace (Taskiz-style near-duplicate promise/oneLiner is common).
+ */
+function pickDistinctSupport(brand, bank, headline, index) {
+  const shortBrand = [brand.adSupport, brand.tagline, brand.supporting, brand.promise]
+    .map((s) => scrubDoNotSay(s, brand.doNotSay))
+    .filter((s) => s && s.length <= 70);
+  const longBrand = [brand.supporting, brand.promise]
+    .map((s) => scrubDoNotSay(s, brand.doNotSay))
+    .filter((s) => s && s.length > 70);
+  const banks = [
+    pick(bank.supports, index),
+    pick(bank.supports, index + 1),
+    pick(bank.primary, index),
+  ]
+    .map((s) => scrubDoNotSay(s, brand.doNotSay))
+    .filter(Boolean);
+
+  // Prefer short brand lines, then banks, then truncated long brand last
+  const candidates = [...shortBrand, ...banks, ...longBrand];
+  for (const c of candidates) {
+    const cleaned = cleanSupport(c, headline, { maxLen: 56, dedupe: true });
+    if (cleaned) return cleaned;
+  }
+  return '';
+}
+
+/**
  * Build structured ad copy for one creative.
  * @param {{ angleId?: string, objectiveId?: string, campaign?: string, index?: number, cta?: string }} opts
  */
@@ -226,39 +257,38 @@ export function buildAdCopy(opts = {}) {
   const objectiveId = String(opts.objectiveId || opts.objective || 'conversion').toLowerCase();
   const campaign = String(opts.campaign || opts.prompt || '').trim();
 
-  // Prefer Brand OS truth over generic banks
-  let headline = scrubDoNotSay(
-    brand.oneLiner || pick(bank.headlines, index),
-    brand.doNotSay
-  );
-  let support = scrubDoNotSay(
-    brand.promise || brand.supporting || pick(bank.supports, index),
-    brand.doNotSay
-  );
+  // Rotate brand truth with angle headlines so a batch isn't 4× the same one-liner
+  const brandHead = scrubDoNotSay(brand.oneLiner || brand.promise || '', brand.doNotSay);
+  const bankHead = scrubDoNotSay(pick(bank.headlines, index), brand.doNotSay);
+  let headline =
+    index % 3 === 0 && brandHead
+      ? brandHead
+      : bankHead || brandHead || scrubDoNotSay(brand.name || 'Learn more', brand.doNotSay);
+
+  if (objectiveId === 'beta' || angleId === 'beta') {
+    // Conversion stills: lead with brand promise / one-liner when available
+    headline = brandHead || scrubDoNotSay(pick(BANKS.beta.headlines, index), brand.doNotSay);
+  }
+
+  let support = pickDistinctSupport(brand, bank, headline, index);
   let primaryText = scrubDoNotSay(
     brand.supporting || brand.promise || pick(bank.primary, index),
     brand.doNotSay
   );
-
-  // Campaign only steers Meta/caption primary text lightly — not the designed support line
-  if (campaign) {
-    const steered = scrubDoNotSay(campaign, brand.doNotSay);
-    // Prefer short support for design (≤72 chars reads clean on stills)
-    if (support.length > 90) {
-      support = support.slice(0, 87).replace(/\s+\S*$/, '') + '…';
-    }
-    if (steered.length > 12 && steered.length < 100) {
-      primaryText = scrubDoNotSay(pick(bank.primary, index), brand.doNotSay);
-    }
-  } else if (support.length > 90) {
-    support = support.slice(0, 87).replace(/\s+\S*$/, '') + '…';
+  if (primaryText && isNearDuplicate(primaryText, headline)) {
+    primaryText = scrubDoNotSay(pick(bank.primary, index), brand.doNotSay) || support || headline;
   }
 
-  if (objectiveId === 'beta' || angleId === 'beta') {
-    headline = scrubDoNotSay(
-      brand.primaryCta || brand.oneLiner || pick(BANKS.beta.headlines, index),
-      brand.doNotSay
-    );
+  // Campaign only steers Meta/caption primary text lightly
+  if (campaign) {
+    const steered = scrubDoNotSay(campaign, brand.doNotSay);
+    if (steered.length > 12 && steered.length < 100) {
+      primaryText = scrubDoNotSay(pick(bank.primary, index), brand.doNotSay) || steered;
+    }
+  }
+
+  if (support.length > 72) {
+    support = support.slice(0, 69).replace(/\s+\S*$/, '').trim();
   }
 
   const cta =
@@ -266,7 +296,6 @@ export function buildAdCopy(opts = {}) {
     brand.primaryCta ||
     'Learn more';
 
-  // Meta-ish short headline (under ~40 recommended)
   const shortHeadline =
     headline.length > 42 ? `${headline.slice(0, 39).replace(/\s+\S*$/, '')}…` : headline;
 

@@ -19,6 +19,7 @@ import {
   buildLayoutTokens,
   stackFromBottom,
   cleanSupport,
+  charsPerLine,
 } from './adLayout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -144,37 +145,66 @@ function escapeXml(s) {
     .replace(/'/g, '&apos;');
 }
 
-/** Word wrap — conservative for Outfit Bold width */
+/**
+ * Word wrap for still ads.
+ * @returns {{ lines: string[], complete: boolean }} complete=false if ellipsized
+ */
 function wrapText(text, maxChars, maxLines = 3) {
   const words = String(text || '')
     .replace(/\s+/g, ' ')
     .trim()
     .split(' ')
     .filter(Boolean);
-  if (!words.length) return [];
+  if (!words.length) return { lines: [], complete: true };
   const limit = Math.max(8, maxChars);
   const lines = [];
   let cur = '';
+  let overflow = false;
   for (const w of words) {
     const next = cur ? `${cur} ${w}` : w;
     if (next.length > limit && cur) {
       lines.push(cur);
       cur = w;
       if (lines.length >= maxLines) {
+        overflow = true;
         cur = '';
         break;
       }
+    } else if (next.length > limit && !cur) {
+      // single long token — hard cut
+      lines.push(w.slice(0, limit - 1) + '…');
+      overflow = true;
+      cur = '';
+      if (lines.length >= maxLines) break;
     } else {
       cur = next;
     }
   }
   if (lines.length < maxLines && cur) lines.push(cur);
-  const full = words.join(' ');
-  if (full.length > lines.join(' ').length && lines.length) {
-    const last = lines[lines.length - 1].replace(/[.,;:!?]+$/, '');
-    lines[lines.length - 1] = last.length > 2 ? `${last}…` : `${last}…`;
+  else if (cur && lines.length) overflow = true;
+
+  if (overflow && lines.length) {
+    const last = lines[lines.length - 1].replace(/[.,;:!?…]+$/, '');
+    lines[lines.length - 1] = `${last}…`;
   }
-  return lines;
+  return { lines, complete: !overflow };
+}
+
+/**
+ * Fit headline into maxLines by slightly reducing size before ellipsizing.
+ * Returns { lines, size, lead }
+ */
+function fitHeadline(text, textW, baseSize, maxLines = 3, { minScale = 0.82 } = {}) {
+  let size = baseSize;
+  const floor = Math.max(Math.round(baseSize * minScale), 28);
+  let best = wrapText(text, charsPerLine(textW, size, { bold: true }), maxLines);
+  while (!best.complete && size > floor) {
+    size = Math.max(floor, size - 2);
+    best = wrapText(text, charsPerLine(textW, size, { bold: true }), maxLines);
+  }
+  // Prefer 2 lines when 3-line wrap is sparse single words — already fine
+  const lead = Math.round(size * 1.2);
+  return { lines: best.lines, size, lead, complete: best.complete };
 }
 
 function pickTemplate(id, index = 0) {
@@ -211,28 +241,43 @@ async function plateToDataUri(plateUrl) {
 /** Absolute-positioned lines — one <text> each (reliable in resvg) */
 function textLines(
   lines,
-  { x, y0, size, leading, weight, fill, anchor = 'start', opacity = 1, fontFamily }
+  {
+    x,
+    y0,
+    size,
+    leading,
+    weight,
+    fill,
+    anchor = 'start',
+    opacity = 1,
+    fontFamily,
+    shadow = false,
+  }
 ) {
   const lh = leading || Math.round(size * 1.25);
   const a = anchor !== 'start' ? ` text-anchor="${anchor}"` : '';
   const op = opacity < 1 ? ` fill-opacity="${opacity}"` : '';
   const fw = weight >= 700 ? 700 : weight >= 600 ? 600 : 400;
   const fam = fontFamily || 'Outfit, Arial, Helvetica, sans-serif';
+  const filter = shadow ? ' filter="url(#textShadow)"' : '';
   return lines
     .map((line, i) => {
       const y = y0 + i * lh;
-      return `<text x="${x}" y="${y}"${a} font-family="${fam}" font-size="${size}" font-weight="${fw}" fill="${fill}"${op}>${escapeXml(line)}</text>`;
+      return `<text x="${x}" y="${y}"${a} font-family="${fam}" font-size="${size}" font-weight="${fw}" fill="${fill}"${op}${filter}>${escapeXml(line)}</text>`;
     })
     .join('\n  ');
 }
 
-/** Full-width primary CTA bar */
+/**
+ * Full-width primary CTA bar (fill = solid or url(#id) from parent defs).
+ */
 function ctaBar({ x, y, width, height, radius, fill, label, labelSize, fontFamily }) {
-  const ty = Math.round(y + height / 2 + labelSize * 0.35);
+  const ty = Math.round(y + height / 2 + labelSize * 0.36);
   const fam = fontFamily || 'Outfit, Arial, Helvetica, sans-serif';
+  const ls = labelSize >= 28 ? 0.5 : 0.25;
   return `
   <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${fill}"/>
-  <text x="${x + width / 2}" y="${ty}" text-anchor="middle" font-family="${fam}" font-size="${labelSize}" font-weight="600" fill="#FFFFFF">${escapeXml(label)}</text>`;
+  <text x="${x + width / 2}" y="${ty}" text-anchor="middle" font-family="${fam}" font-size="${labelSize}" font-weight="600" letter-spacing="${ls}" fill="#FFFFFF">${escapeXml(label)}</text>`;
 }
 
 function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoUri }) {
@@ -240,11 +285,12 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
   const t = buildLayoutTokens({ w, h, aspectId, brand });
   const fontFamily = `${t.displayFont}, Arial, Helvetica, sans-serif`;
   const brandDeep = t.ctaFill;
-  const accent = colors.accent || colors.brand || brandDeep;
+  const brandMid = colors.brand || brandDeep;
+  const accent = colors.accent || brandMid;
 
   const headline = String(copy.headline || copy.shortHeadline || '').trim();
   const support = cleanSupport(copy.support || copy.body, headline, {
-    maxLen: 52,
+    maxLen: 56,
     dedupe: t.dedupeSupport,
   });
   const cta = String(copy.cta || t.primaryCta || 'Learn more').trim();
@@ -252,84 +298,115 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
     .replace(/^https?:\/\//, '')
     .replace(/\/$/, '');
 
-  const padX = t.pad;
-  const padBot = t.padBot || t.pad;
+  const padX = t.padX || t.pad;
+  const padTop = t.padTop || padX;
+  const padBot = t.padBot || padX;
   const textW = w - padX * 2;
-  const hChars = Math.max(14, Math.floor(textW / (t.h1 * 0.62)));
-  const bChars = Math.max(18, Math.floor(textW / (t.body * 0.55)));
   const maxSupport = t.maxSupportLines || 1;
+  const bChars = charsPerLine(textW, t.body, { bold: false });
+  const ctaFill = brandMid !== brandDeep ? 'url(#ctaGrad)' : brandDeep;
 
   const plate = plateDataUri
     ? `<image href="${plateDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`
     : `<rect width="${w}" height="${h}" fill="${t.scrim}"/>`;
 
-  const logo = logoUri
-    ? `<image href="${logoUri}" x="${padX}" y="${t.padTop || t.pad}" width="${t.logoW}" height="${t.logoH}" preserveAspectRatio="xMidYMid meet"/>`
+  const logoTL = logoUri
+    ? `<image href="${logoUri}" x="${padX}" y="${padTop}" width="${t.logoW}" height="${t.logoH}" preserveAspectRatio="xMidYMid meet"/>`
     : '';
+
+  const sharedDefs = `
+    <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="${brandDeep}"/>
+      <stop offset="100%" stop-color="${accent}"/>
+    </linearGradient>
+    <linearGradient id="ctaGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="${brandDeep}"/>
+      <stop offset="100%" stop-color="${brandMid}"/>
+    </linearGradient>
+    <filter id="textShadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>`;
 
   // ═══════════ END CARD ═══════════
   if (templateId === 'endcard') {
-    const hLines = wrapText(headline, hChars, 3);
-    const sLines = wrapText(support, bChars, maxSupport);
+    const fit = fitHeadline(headline, textW, t.h1, 3);
+    const sWrap = wrapText(support, bChars, maxSupport);
+    const sLines = sWrap.lines;
+    const hLines = fit.lines;
+
+    // Vertically center type block between logo bottom and CTA top
+    const logoBottom = padTop + (logoUri ? t.logoH + t.gapLogoH1 : 0);
     const { ctaY, sY0, hY0 } = stackFromBottom({
       canvasH: h,
       padBot,
       ctaH: t.ctaH,
       hLines,
-      hLead: t.h1Lead,
-      hSize: t.h1,
+      hLead: fit.lead,
+      hSize: fit.size,
       sLines,
       sLead: t.bodyLead,
       sSize: t.body,
       gapH1Body: t.gapH1Body,
       gapBodyCta: t.gapBodyCta,
-      reserveMeta: t.gapH1Body + t.meta,
+      reserveMeta: site ? t.meta + Math.round(t.S * 0.02) : 0,
     });
-    const siteY = h - padBot;
+
+    // Pull stack upward if too much dead air under logo (common on tall canvases)
+    const typeBlockH =
+      (hLines.length ? (hLines.length - 1) * fit.lead + fit.size : 0) +
+      (sLines.length ? t.gapH1Body + t.bodyLead : 0) +
+      t.gapBodyCta +
+      t.ctaH;
+    const available = ctaY + t.ctaH - logoBottom;
+    let yShift = 0;
+    if (available > typeBlockH + Math.round(h * 0.12)) {
+      // Nudge headline block toward optical center of free space
+      const idealTop = logoBottom + Math.round((available - typeBlockH) * 0.42);
+      yShift = Math.max(0, idealTop - (hY0 - fit.size));
+    }
+    const hY = hY0 + yShift;
+    const sY = sY0 != null ? sY0 + yShift : null;
+    // Keep CTA pinned to bottom (do not shift)
+    const siteY = h - Math.round(padBot * 0.45);
 
     const hair = Math.max(3, Math.round(t.S * 0.005));
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${brandDeep}"/>
-      <stop offset="100%" stop-color="${accent}"/>
-    </linearGradient>
-  </defs>
+  <defs>${sharedDefs}</defs>
   <rect width="${w}" height="${h}" fill="${t.scrim}"/>
   ${
     plateDataUri
-      ? `<image href="${plateDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="0.1"/>
-  <rect width="${w}" height="${h}" fill="${t.scrim}" opacity="0.65"/>`
+      ? `<image href="${plateDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="0.12"/>
+  <rect width="${w}" height="${h}" fill="${t.scrim}" opacity="0.72"/>`
       : ''
   }
   <rect x="0" y="0" width="${w}" height="${hair}" fill="url(#gAccent)"/>
   ${
     logoUri
-      ? `<image href="${logoUri}" x="${(w - t.logoW) / 2}" y="${t.padTop || padX}" width="${t.logoW}" height="${t.logoH}"/>`
+      ? `<image href="${logoUri}" x="${(w - t.logoW) / 2}" y="${padTop}" width="${t.logoW}" height="${t.logoH}"/>`
       : ''
   }
   ${textLines(hLines, {
     x: w / 2,
-    y0: hY0,
-    size: t.h1,
-    leading: t.h1Lead,
+    y0: hY,
+    size: fit.size,
+    leading: fit.lead,
     weight: 700,
     fill: t.textOnDark,
     anchor: 'middle',
     fontFamily,
   })}
   ${
-    sLines.length && sY0 != null
+    sLines.length && sY != null
       ? textLines(sLines, {
           x: w / 2,
-          y0: sY0,
+          y0: sY,
           size: t.body,
           leading: t.bodyLead,
           weight: 400,
           fill: t.textOnDark,
           anchor: 'middle',
-          opacity: 0.92,
+          opacity: 0.88,
           fontFamily,
         })
       : ''
@@ -340,7 +417,7 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
     width: textW,
     height: t.ctaH,
     radius: t.ctaRadius,
-    fill: brandDeep,
+    fill: ctaFill,
     label: cta,
     labelSize: t.ctaLabel,
     fontFamily,
@@ -354,7 +431,7 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
           weight: 400,
           fill: t.textOnDark,
           anchor: 'middle',
-          opacity: 0.5,
+          opacity: 0.45,
           fontFamily,
         })
       : ''
@@ -364,102 +441,20 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
 
   // ═══════════ PANEL ═══════════
   if (templateId === 'panel') {
-    const hSize = t.h1Sm;
-    const hLead = t.h1SmLead || Math.round(hSize * 1.22);
-    const hLines = wrapText(headline, Math.floor(textW / (hSize * 0.62)), 3);
-    const sLines = wrapText(support, bChars, maxSupport);
-
-    const stackH =
-      (logoUri ? t.logoH + t.gapLogoH1 : 0) +
-      hLines.length * hLead +
-      (sLines.length ? t.gapH1Body + t.bodyLead : 0) +
-      t.gapBodyCta +
-      t.ctaH;
-
-    const panelH = Math.min(
-      Math.round(h * 0.55),
-      Math.max(Math.round(h * 0.4), stackH + padX * 2)
-    );
-    const panelY = h - panelH;
-    let y = panelY + padX;
-
-    const logoBlock = logoUri
-      ? `<image href="${logoUri}" x="${padX}" y="${y}" width="${t.logoW}" height="${t.logoH}"/>`
-      : '';
-    if (logoUri) y += t.logoH + t.gapLogoH1;
-
-    const hY0 = y + Math.round(hSize * 0.85);
-    y = hY0 + (hLines.length - 1) * hLead + t.gapH1Body;
-    const sY0 = sLines.length ? y + Math.round(t.body * 0.85) : y;
-    if (sLines.length) y = sY0 + t.gapBodyCta;
-    else y = hY0 + (hLines.length - 1) * hLead + t.gapBodyCta;
-    const ctaY = Math.min(h - padBot - t.ctaH, y);
-    const hair = Math.max(3, Math.round(t.S * 0.004));
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="gAccent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${brandDeep}"/>
-      <stop offset="100%" stop-color="${accent}"/>
-    </linearGradient>
-  </defs>
-  ${plate}
-  <rect x="0" y="${panelY}" width="${w}" height="${panelH}" fill="${t.scrim}"/>
-  <rect x="0" y="${panelY}" width="${w}" height="${hair}" fill="url(#gAccent)"/>
-  ${logoBlock}
-  ${textLines(hLines, {
-    x: padX,
-    y0: hY0,
-    size: hSize,
-    leading: hLead,
-    weight: 700,
-    fill: t.textOnDark,
-    fontFamily,
-  })}
-  ${
-    sLines.length
-      ? textLines(sLines, {
-          x: padX,
-          y0: sY0,
-          size: t.body,
-          leading: t.bodyLead,
-          weight: 400,
-          fill: t.textOnDark,
-          opacity: 0.92,
-          fontFamily,
-        })
-      : ''
-  }
-  ${ctaBar({
-    x: padX,
-    y: ctaY,
-    width: textW,
-    height: t.ctaH,
-    radius: t.ctaRadius,
-    fill: brandDeep,
-    label: cta,
-    labelSize: t.ctaLabel,
-    fontFamily,
-  })}
-</svg>`;
-  }
-
-  // ═══════════ HERO + STORY ═══════════
-  {
-    const isStory = templateId === 'story' || t.profile === 'story';
-    const hSize = isStory ? Math.round(t.h1 * 1.04) : t.h1;
-    const hLead = Math.round(hSize * 1.22);
-    const hLines = wrapText(headline, Math.floor(textW / (hSize * 0.62)), 3);
-    const sLines = wrapText(support, bChars, maxSupport);
+    const fit = fitHeadline(headline, textW, t.h1Sm, 3);
+    const sWrap = wrapText(support, bChars, maxSupport);
+    const sLines = sWrap.lines;
+    const hLines = fit.lines;
+    // Tighter logo→headline in dock (panel is a compact unit)
+    const logoGap = Math.round(t.gapLogoH1 * 0.75);
 
     const { ctaY, sY0, hY0, typeTop } = stackFromBottom({
       canvasH: h,
       padBot,
       ctaH: t.ctaH,
       hLines,
-      hLead,
-      hSize,
+      hLead: fit.lead,
+      hSize: fit.size,
       sLines,
       sLead: t.bodyLead,
       sSize: t.body,
@@ -467,32 +462,36 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
       gapBodyCta: t.gapBodyCta,
     });
 
-    const scrimY = Math.max(Math.round(h * 0.32), typeTop - padX);
-    const topScrimH = Math.round(h * 0.14);
+    const logoBlockH = logoUri ? t.logoH + logoGap : 0;
+    // Logo sits immediately above headline; panel hugs that stack (no empty dock air)
+    const logoY = typeTop - logoBlockH;
+    let panelY = logoY - Math.round(padX * 0.9);
+    const minPhotoH = Math.round(h * 0.36);
+    if (panelY < minPhotoH) panelY = minPhotoH;
+    // Never start panel below the logo (would crop mark)
+    if (panelY > logoY - Math.round(padX * 0.5)) {
+      panelY = Math.max(minPhotoH * 0.85, logoY - Math.round(padX * 0.9));
+    }
+    const panelH = h - panelY;
+    const logoYClamped = Math.max(panelY + Math.round(padX * 0.65), logoY);
+    const hair = Math.max(3, Math.round(t.S * 0.004));
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="scrimTop" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${t.scrim}" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="scrimBot" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${t.scrim}" stop-opacity="0"/>
-      <stop offset="18%" stop-color="${t.scrim}" stop-opacity="0.5"/>
-      <stop offset="50%" stop-color="${t.scrim}" stop-opacity="0.93"/>
-      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0.98"/>
-    </linearGradient>
-  </defs>
+  <defs>${sharedDefs}</defs>
   ${plate}
-  <rect width="${w}" height="${topScrimH}" fill="url(#scrimTop)"/>
-  <rect y="${scrimY}" width="${w}" height="${h - scrimY}" fill="url(#scrimBot)"/>
-  ${logo}
+  <rect x="0" y="${panelY}" width="${w}" height="${panelH}" fill="${t.scrim}"/>
+  <rect x="0" y="${panelY}" width="${w}" height="${hair}" fill="url(#gAccent)"/>
+  ${
+    logoUri
+      ? `<image href="${logoUri}" x="${padX}" y="${logoYClamped}" width="${t.logoW}" height="${t.logoH}"/>`
+      : ''
+  }
   ${textLines(hLines, {
     x: padX,
     y0: hY0,
-    size: hSize,
-    leading: hLead,
+    size: fit.size,
+    leading: fit.lead,
     weight: 700,
     fill: t.textOnDark,
     fontFamily,
@@ -506,7 +505,7 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
           leading: t.bodyLead,
           weight: 400,
           fill: t.textOnDark,
-          opacity: 0.95,
+          opacity: 0.9,
           fontFamily,
         })
       : ''
@@ -517,7 +516,92 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
     width: textW,
     height: t.ctaH,
     radius: t.ctaRadius,
-    fill: brandDeep,
+    fill: ctaFill,
+    label: cta,
+    labelSize: t.ctaLabel,
+    fontFamily,
+  })}
+</svg>`;
+  }
+
+  // ═══════════ HERO + STORY (+ landscape uses same bottom stack) ═══════════
+  {
+    const isStory = templateId === 'story' || t.profile === 'story';
+    const baseH1 = isStory ? Math.round(t.h1 * 1.06) : t.h1;
+    const fit = fitHeadline(headline, textW, baseH1, 3);
+    const sWrap = wrapText(support, bChars, maxSupport);
+    const sLines = sWrap.lines;
+    const hLines = fit.lines;
+
+    const { ctaY, sY0, hY0, typeTop } = stackFromBottom({
+      canvasH: h,
+      padBot,
+      ctaH: t.ctaH,
+      hLines,
+      hLead: fit.lead,
+      hSize: fit.size,
+      sLines,
+      sLead: t.bodyLead,
+      sSize: t.body,
+      gapH1Body: t.gapH1Body,
+      gapBodyCta: t.gapBodyCta,
+    });
+
+    // Scrim starts above type with breathing room; stronger near CTA
+    const scrimY = Math.max(Math.round(h * 0.28), typeTop - Math.round(padX * 1.15));
+    const topScrimH = Math.round(h * (isStory ? 0.12 : 0.13));
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    ${sharedDefs}
+    <linearGradient id="scrimTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${t.scrim}" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="scrimBot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${t.scrim}" stop-opacity="0"/>
+      <stop offset="22%" stop-color="${t.scrim}" stop-opacity="0.55"/>
+      <stop offset="55%" stop-color="${t.scrim}" stop-opacity="0.94"/>
+      <stop offset="100%" stop-color="${t.scrim}" stop-opacity="0.98"/>
+    </linearGradient>
+  </defs>
+  ${plate}
+  <rect width="${w}" height="${topScrimH}" fill="url(#scrimTop)"/>
+  <rect y="${scrimY}" width="${w}" height="${h - scrimY}" fill="url(#scrimBot)"/>
+  ${logoTL}
+  ${textLines(hLines, {
+    x: padX,
+    y0: hY0,
+    size: fit.size,
+    leading: fit.lead,
+    weight: 700,
+    fill: t.textOnDark,
+    fontFamily,
+    shadow: true,
+  })}
+  ${
+    sLines.length && sY0 != null
+      ? textLines(sLines, {
+          x: padX,
+          y0: sY0,
+          size: t.body,
+          leading: t.bodyLead,
+          weight: 400,
+          fill: t.textOnDark,
+          opacity: 0.94,
+          fontFamily,
+          shadow: true,
+        })
+      : ''
+  }
+  ${ctaBar({
+    x: padX,
+    y: ctaY,
+    width: textW,
+    height: t.ctaH,
+    radius: t.ctaRadius,
+    fill: ctaFill,
     label: cta,
     labelSize: t.ctaLabel,
     fontFamily,

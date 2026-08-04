@@ -37,6 +37,7 @@ server/data/refs/files/
 # Optional local overrides
 clients/**/brand.overrides.json
 clients/**/onboarding.json
+clients/**/research/
 
 # Keep empty runtime dirs in repo
 !server/data/.gitkeep

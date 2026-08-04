@@ -46,7 +46,11 @@ const STEP_META = {
     identity: { icon: Building2, title: 'Identity', blurb: 'Who is this client and what do they sell?' },
     offer: { icon: Megaphone, title: 'Offer truth', blurb: 'Value prop, features, and pricing language.' },
     icp: { icon: Users, title: 'Who + not who', blurb: 'ICP priority — and who to ignore for now.' },
-    market: { icon: Target, title: 'Market context', blurb: 'Competitors, communities, and proof sources.' },
+    market: {
+        icon: Target,
+        title: 'Market & signals',
+        blurb: 'Competitors, social handles, reviews, and proof — the gold for ICP language.',
+    },
     voice: { icon: Shield, title: 'Voice locks', blurb: 'Tone, do-not-say list, and claim limits.' },
     brandkit: { icon: Palette, title: 'Brand kit', blurb: 'Colors, photo rules, logo, and references.' },
     channels: { icon: Radio, title: 'Channels', blurb: 'Platforms, formats, and publish profile.' },
@@ -73,7 +77,21 @@ function emptyLocalAnswers() {
         identity: { name: '', website: '', oneLiner: '', category: '' },
         offer: { valueProp: '', promise: '', keyFeatures: '', pricingModel: '' },
         icp: { primary: '', secondary: '', later: '', exclusions: '' },
-        market: { competitors: '', communities: '', proofSources: '' },
+        market: {
+            competitors: '',
+            competitorUrls: '',
+            communities: '',
+            proofSources: '',
+            reviewUrls: '',
+            bestCustomer: '',
+        },
+        social: {
+            instagram: '',
+            tiktok: '',
+            linkedin: '',
+            youtube: '',
+            x: '',
+        },
         voice: {
             tone: 'practical, honest, specific — not fluffy SaaS',
             doNotSay: '',
@@ -131,7 +149,7 @@ function statusVariant(status) {
 
 function StepRail({ steps, current, completed, score }) {
     return (
-        <VStack gap={3} style={{ minWidth: 200, maxWidth: 240 }}>
+        <VStack gap={3} className="onboarding-step-rail" style={{ minWidth: 200, maxWidth: 240 }}>
             <VStack gap={1}>
                 <Text type="label" color="secondary">
                     Completeness
@@ -156,13 +174,13 @@ function StepRail({ steps, current, completed, score }) {
                             gap={2}
                             vAlign="center"
                             padding={2}
-                            style={{
-                                borderRadius: 'var(--radius-md, 8px)',
-                                background: isCurrent
-                                    ? 'var(--color-background-surface-raised, #f5f5f5)'
-                                    : 'transparent',
-                                opacity: isDone || isCurrent ? 1 : 0.55,
-                            }}
+                            className={
+                                isCurrent
+                                    ? 'onboarding-step is-current'
+                                    : isDone
+                                      ? 'onboarding-step is-done'
+                                      : 'onboarding-step'
+                            }
                         >
                             <StatusDot
                                 variant={isDone ? 'success' : isCurrent ? 'accent' : 'neutral'}
@@ -173,7 +191,7 @@ function StepRail({ steps, current, completed, score }) {
                                     {i + 1}. {s.label}
                                 </Text>
                             </VStack>
-                            <Icon size={14} />
+                            <Icon size={14} aria-hidden />
                         </HStack>
                     );
                 })}
@@ -185,17 +203,25 @@ function StepRail({ steps, current, completed, score }) {
 function ResearchMap({ research, onRefresh, refreshing }) {
     const cards = research?.cards || {};
     const entries = Object.entries(cards);
+    const conf = research?.confidence ?? research?.scraped?.extracted?.confidence;
+    const jobs = research?.jobs || {};
     return (
         <VStack gap={4}>
             <HStack gap={3} vAlign="center" hAlign="between" wrap="wrap">
                 <VStack gap={1}>
                     <Heading level={3}>Brand research map</Heading>
                     <Text type="supporting" color="secondary" as="p">
-                        Findings land here as the Brand Brain compiles — click through after lock to keep
-                        refining in Brand kit.
+                        Multi-source Brand Brain: site crawl, competitors, buyer phrases, social, and docs.
+                        Inspect cards, then lock when confidence looks solid.
                     </Text>
                 </VStack>
-                <HStack gap={2} vAlign="center">
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                    {conf != null && conf > 0 ? (
+                        <Badge
+                            label={`${conf}% confidence`}
+                            variant={conf >= 70 ? 'success' : conf >= 40 ? 'warning' : 'neutral'}
+                        />
+                    ) : null}
                     <Badge
                         label={
                             research?.status === 'running' || research?.running
@@ -219,17 +245,49 @@ function ResearchMap({ research, onRefresh, refreshing }) {
             </HStack>
 
             {(research?.status === 'running' || research?.running) && (
-                <ProgressBar label="Research progress" isIndeterminate variant="accent" />
+                <VStack gap={2}>
+                    <ProgressBar label="Research progress" isIndeterminate variant="accent" />
+                    {Object.keys(jobs).length ? (
+                        <HStack gap={2} wrap="wrap">
+                            {Object.entries(jobs).map(([k, j]) => (
+                                <Badge
+                                    key={k}
+                                    label={`${k}: ${j?.status || '…'}`}
+                                    variant={
+                                        j?.status === 'done'
+                                            ? 'success'
+                                            : j?.status === 'error'
+                                              ? 'error'
+                                              : 'neutral'
+                                    }
+                                />
+                            ))}
+                        </HStack>
+                    ) : null}
+                </VStack>
             )}
 
             {research?.error ? (
                 <Banner status="warning" title="Research hit a snag" description={research.error} />
             ) : null}
 
-            {research?.scraped?.websiteUrl ? (
+            {research?.scraped?.websiteUrl || research?.scraped?.extracted ? (
                 <Text type="supporting" size="sm" color="secondary">
-                    Website: {research.scraped.websiteUrl}
-                    {research.scraped.hasMarkdown ? ' · scraped' : ' · scrape empty'}
+                    {research.scraped.websiteUrl
+                        ? `Website: ${research.scraped.websiteUrl}`
+                        : 'No website URL'}
+                    {research.scraped.extracted?.pageCount != null
+                        ? ` · ${research.scraped.extracted.pageCount} pages`
+                        : research.scraped.hasMarkdown
+                          ? ' · scraped'
+                          : ''}
+                    {research.scraped.extracted?.phrases != null
+                        ? ` · ${research.scraped.extracted.phrases} phrases`
+                        : ''}
+                    {research.scraped.extracted?.competitors != null
+                        ? ` · ${research.scraped.extracted.competitors} competitors`
+                        : ''}
+                    {research.bundlePath ? ` · saved ${research.bundlePath}` : ''}
                 </Text>
             ) : null}
 
@@ -251,6 +309,14 @@ function ResearchMap({ research, onRefresh, refreshing }) {
                                 {card.summary ||
                                     (card.status === 'researching' ? 'Researching…' : 'Waiting…')}
                             </Text>
+                            {card.confidence != null ? (
+                                <Text type="supporting" size="xsm" color="secondary">
+                                    Confidence {card.confidence}%
+                                    {Array.isArray(card.sources) && card.sources.length
+                                        ? ` · ${card.sources.filter((s) => s.ok !== false).length} sources`
+                                        : ''}
+                                </Text>
+                            ) : null}
                             {Array.isArray(card.data?.angles) ? (
                                 <VStack gap={1}>
                                     {card.data.angles.slice(0, 3).map((a) => (
@@ -260,9 +326,26 @@ function ResearchMap({ research, onRefresh, refreshing }) {
                                     ))}
                                 </VStack>
                             ) : null}
+                            {Array.isArray(card.data?.phrases) ? (
+                                <VStack gap={1}>
+                                    {card.data.phrases.slice(0, 2).map((a) => (
+                                        <Text key={a} type="supporting" size="xsm" as="p">
+                                            “{a}”
+                                        </Text>
+                                    ))}
+                                </VStack>
+                            ) : null}
                             {Array.isArray(card.data?.primary) ? (
                                 <Text type="supporting" size="xsm" as="p">
                                     {card.data.primary.join(' · ')}
+                                </Text>
+                            ) : null}
+                            {Array.isArray(card.data?.matrix) ? (
+                                <Text type="supporting" size="xsm" as="p">
+                                    {card.data.matrix
+                                        .slice(0, 3)
+                                        .map((m) => m.name)
+                                        .join(' · ')}
                                 </Text>
                             ) : null}
                         </VStack>
@@ -597,6 +680,7 @@ export function OnboardingWizard({
                         offer: answers.offer,
                         icp: answers.icp,
                         market: answers.market,
+                        social: answers.social,
                         voice: answers.voice,
                         brandkit: answers.brandkit,
                         channels: answers.channels,
@@ -818,12 +902,40 @@ export function OnboardingWizard({
             return (
                 <VStack gap={4}>
                     <TextArea
-                        label="Competitors & adjacent tools"
+                        label="Who is your best customer?"
+                        value={answers.market.bestCustomer}
+                        onChange={(v) => patchAnswer('market', 'bestCustomer', v)}
+                        description="One paragraph in their words — highest ROI for hooks and captions."
+                        placeholder="Describe a real customer: role, pain, what they tried before, why they bought."
+                        rows={3}
+                        width="100%"
+                    />
+                    <TextArea
+                        label="Competitor names"
                         value={answers.market.competitors}
                         onChange={(v) => patchAnswer('market', 'competitors', v)}
                         placeholder={'Competitor A\nCompetitor B\nAdjacent tool'}
                         description="One per line."
-                        rows={4}
+                        rows={3}
+                        width="100%"
+                    />
+                    <TextArea
+                        label="Competitor URLs"
+                        value={answers.market.competitorUrls}
+                        onChange={(v) => patchAnswer('market', 'competitorUrls', v)}
+                        description="3–7 product URLs we will crawl for positioning (not just names)."
+                        placeholder={'https://competitor-a.com\nhttps://competitor-b.com/pricing'}
+                        rows={3}
+                        width="100%"
+                    />
+                    <TextArea
+                        label="Review / proof URLs"
+                        value={answers.market.reviewUrls}
+                        onChange={(v) => patchAnswer('market', 'reviewUrls', v)}
+                        description="G2, App Store, Trustpilot, Reddit threads, case studies — mined for buyer language."
+                        placeholder={'https://www.g2.com/products/…\nhttps://apps.apple.com/…'}
+                        rows={3}
+                        isOptional
                         width="100%"
                     />
                     <TextArea
@@ -831,19 +943,65 @@ export function OnboardingWizard({
                         value={answers.market.communities}
                         onChange={(v) => patchAnswer('market', 'communities', v)}
                         placeholder={'Industry forums\nSocial groups\nNewsletters'}
-                        rows={3}
+                        rows={2}
                         isOptional
                         width="100%"
                     />
                     <TextArea
-                        label="Proof sources"
+                        label="Proof sources (notes)"
                         value={answers.market.proofSources}
                         onChange={(v) => patchAnswer('market', 'proofSources', v)}
-                        placeholder={'Testimonials\nCase studies\nReviews'}
-                        rows={3}
+                        placeholder={'Waitlist size\nFounder quotes\nPress'}
+                        rows={2}
                         isOptional
                         width="100%"
                     />
+                    <Heading level={3}>Social handles (optional)</Heading>
+                    <Text type="supporting" color="secondary" size="sm" as="p">
+                        Public profiles only — no OAuth required. Used for tone and format hints.
+                    </Text>
+                    <Grid columns={{ minWidth: 200, max: 2 }} gap={3}>
+                        <TextInput
+                            label="Instagram"
+                            value={answers.social.instagram}
+                            onChange={(v) => patchAnswer('social', 'instagram', v)}
+                            placeholder="@brand or URL"
+                            isOptional
+                            width="100%"
+                        />
+                        <TextInput
+                            label="TikTok"
+                            value={answers.social.tiktok}
+                            onChange={(v) => patchAnswer('social', 'tiktok', v)}
+                            placeholder="@brand or URL"
+                            isOptional
+                            width="100%"
+                        />
+                        <TextInput
+                            label="LinkedIn"
+                            value={answers.social.linkedin}
+                            onChange={(v) => patchAnswer('social', 'linkedin', v)}
+                            placeholder="company slug or URL"
+                            isOptional
+                            width="100%"
+                        />
+                        <TextInput
+                            label="YouTube"
+                            value={answers.social.youtube}
+                            onChange={(v) => patchAnswer('social', 'youtube', v)}
+                            placeholder="@channel or URL"
+                            isOptional
+                            width="100%"
+                        />
+                        <TextInput
+                            label="X / Twitter"
+                            value={answers.social.x}
+                            onChange={(v) => patchAnswer('social', 'x', v)}
+                            placeholder="@brand or URL"
+                            isOptional
+                            width="100%"
+                        />
+                    </Grid>
                 </VStack>
             );
         }
@@ -1044,6 +1202,7 @@ export function OnboardingWizard({
             }}
             variant="fullscreen"
             purpose="form"
+            className="onboarding-dialog"
         >
             <Layout
                 height="fill"
@@ -1058,35 +1217,65 @@ export function OnboardingWizard({
                     />
                 }
                 content={
-                    <LayoutContent padding={5} isScrollable>
-                        <HStack gap={6} vAlign="start" wrap="wrap">
-                            <StepRail
-                                steps={steps}
-                                current={step}
-                                completed={onboarding?.stepsCompleted}
-                                score={score}
-                            />
-                            <VStack gap={4} style={{ flex: '1 1 420px', minWidth: 0, maxWidth: 720 }}>
-                                <HStack gap={3} vAlign="center">
-                                    <Icon size={22} />
-                                    <VStack gap={0}>
-                                        <Heading level={2}>{meta.title}</Heading>
-                                        <Text type="supporting" color="secondary" as="p">
-                                            {meta.blurb}
-                                        </Text>
-                                    </VStack>
-                                </HStack>
-                                {pollError ? (
-                                    <Banner status="warning" title="Sync issue" description={pollError} />
-                                ) : null}
-                                {renderStepBody()}
-                            </VStack>
+                    <LayoutContent padding={5} isScrollable className="onboarding-dialog-content">
+                        <HStack
+                            gap={0}
+                            hAlign="center"
+                            vAlign="start"
+                            className="onboarding-board-outer"
+                            style={{ width: '100%' }}
+                        >
+                            <HStack
+                                gap={6}
+                                vAlign="start"
+                                wrap="wrap"
+                                className="onboarding-board"
+                                style={{
+                                    width: '100%',
+                                    maxWidth: 960,
+                                    marginInline: 'auto',
+                                }}
+                            >
+                                <StepRail
+                                    steps={steps}
+                                    current={step}
+                                    completed={onboarding?.stepsCompleted}
+                                    score={score}
+                                />
+                                <VStack
+                                    gap={4}
+                                    className="onboarding-step-body"
+                                    style={{ flex: '1 1 420px', minWidth: 0, maxWidth: 560 }}
+                                >
+                                    <HStack gap={3} vAlign="center">
+                                        <Icon size={22} />
+                                        <VStack gap={0}>
+                                            <Heading level={2}>{meta.title}</Heading>
+                                            <Text type="supporting" color="secondary" as="p">
+                                                {meta.blurb}
+                                            </Text>
+                                        </VStack>
+                                    </HStack>
+                                    {pollError ? (
+                                        <Banner status="warning" title="Sync issue" description={pollError} />
+                                    ) : null}
+                                    {renderStepBody()}
+                                </VStack>
+                            </HStack>
                         </HStack>
                     </LayoutContent>
                 }
                 footer={
                     <LayoutFooter hasDivider>
-                        <HStack gap={3} vAlign="center" hAlign="between" padding={3} wrap="wrap">
+                        <HStack
+                            gap={3}
+                            vAlign="center"
+                            hAlign="between"
+                            padding={3}
+                            wrap="wrap"
+                            className="onboarding-footer"
+                            style={{ width: '100%', maxWidth: 960, marginInline: 'auto' }}
+                        >
                             <HStack gap={2} vAlign="center">
                                 <Globe size={14} />
                                 <Text type="supporting" size="sm" color="secondary">
@@ -1122,6 +1311,7 @@ export function OnboardingWizard({
                                 <Button
                                     label={primaryLabel}
                                     variant="primary"
+                                    className="onboarding-primary-btn"
                                     icon={
                                         busy || saving || creating ? (
                                             <Loader2 className="spin" size={16} />

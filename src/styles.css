@@ -753,13 +753,79 @@
   }
 
   /*
-   * Force monochrome Astryx primaries (in case Theme injects chroma later).
-   * Dark: white solid buttons · Light: black solid buttons.
+   * Force monochrome Astryx primaries with real contrast.
+   * Dialogs often portal outside .studio-root — cover both.
+   * Light: black fill + white label · Dark: near-white fill + black label.
    */
   .studio-root button[data-variant='primary'],
-  .studio-root [class*='Button'][data-variant='primary'] {
-    --_btn-bg: var(--color-text-primary);
-    --_btn-fg: var(--color-background-body);
+  .studio-root [class*='Button'][data-variant='primary'],
+  .studio-root [data-variant='primary'],
+  dialog button[data-variant='primary'],
+  dialog [data-variant='primary'],
+  [role='dialog'] button[data-variant='primary'],
+  [role='dialog'] [data-variant='primary'],
+  .onboarding-dialog button[data-variant='primary'],
+  .onboarding-primary-btn {
+    background-color: light-dark(#111111, #f5f5f5) !important;
+    background: light-dark(#111111, #f5f5f5) !important;
+    color: light-dark(#ffffff, #111111) !important;
+    border-color: light-dark(#111111, #f5f5f5) !important;
+  }
+
+  .studio-root button[data-variant='primary'] svg,
+  .studio-root [data-variant='primary'] svg,
+  dialog button[data-variant='primary'] svg,
+  [role='dialog'] button[data-variant='primary'] svg,
+  .onboarding-primary-btn svg {
+    color: inherit !important;
+    stroke: currentColor;
+  }
+
+  /* Onboarding wizard — centered board + readable step rail (dark mode safe) */
+  .onboarding-board-outer {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .onboarding-board {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+
+  .onboarding-footer {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+
+  .onboarding-step {
+    border-radius: var(--radius-md, 8px);
+    border: 1px solid transparent;
+    color: var(--color-text-primary, light-dark(#171717, #fafafa));
+    opacity: 0.55;
+    transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+
+  .onboarding-step.is-done {
+    opacity: 0.85;
+  }
+
+  .onboarding-step.is-current {
+    opacity: 1;
+    /* Stay on dark surfaces in dark mode — never light chip + light text */
+    background: light-dark(
+      var(--color-background-surface-raised, #f0f0f0),
+      var(--color-background-surface, #1b1b1b)
+    );
+    border-color: var(--color-border, light-dark(#e5e5e5, #3a3a3a));
+    color: var(--color-text-primary, light-dark(#171717, #fafafa));
+  }
+
+  .onboarding-step.is-current svg {
+    color: var(--color-text-primary, light-dark(#171717, #fafafa));
+    opacity: 0.9;
   }
 
   /* ── Create composer (Auto / Prompt) ── */

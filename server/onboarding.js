@@ -20,6 +20,7 @@ import {
     loadContentMeta,
     CLIENTS_ROOT,
 } from './brandLoader.js';
+import { runBrandResearch } from './research/orchestrator.js';
 
 const ONBOARDING_FILE = 'onboarding.json';
 const BRAND_DRAFT = 'brand.draft.json';
@@ -48,9 +49,9 @@ export const ONBOARDING_STEPS = [
     },
     {
         id: 'market',
-        label: 'Market context',
-        description: 'Competitors, communities, proof',
-        weight: 10,
+        label: 'Market & signals',
+        description: 'Competitors, social, reviews, proof',
+        weight: 12,
     },
     {
         id: 'voice',
@@ -142,8 +143,18 @@ function emptyAnswers(seed = {}) {
         },
         market: {
             competitors: seed.competitors || '',
+            competitorUrls: seed.competitorUrls || '',
             communities: seed.communities || '',
             proofSources: seed.proofSources || '',
+            reviewUrls: seed.reviewUrls || '',
+            bestCustomer: seed.bestCustomer || '',
+        },
+        social: {
+            instagram: seed.instagram || '',
+            tiktok: seed.tiktok || '',
+            linkedin: seed.linkedin || '',
+            youtube: seed.youtube || '',
+            x: seed.x || '',
         },
         voice: {
             tone: seed.tone || 'practical, honest, specific — not fluffy SaaS',
@@ -180,6 +191,8 @@ function emptyResearch() {
         startedAt: null,
         completedAt: null,
         error: null,
+        confidence: 0,
+        jobs: null,
         cards: {
             brandOverview: cardShell('Brand overview', 'Messaging, category, promise'),
             yourBuyer: cardShell('Your buyer', 'ICP language and pains'),
@@ -189,12 +202,15 @@ function emptyResearch() {
             visualIdentity: cardShell('Visual identity', 'Photo rules and palette'),
             strategy: cardShell('Strategy', 'How we win in content'),
             marketPosition: cardShell('Market position', 'Where this brand sits'),
+            socialPulse: cardShell('Social pulse', 'Public handles and format hints'),
+            sourceMap: cardShell('Source map', 'What we scraped and confidence'),
         },
         scraped: {
             websiteUrl: null,
             websiteMarkdown: '',
             extracted: null,
         },
+        bundlePath: null,
     };
 }
 
@@ -205,6 +221,8 @@ function cardShell(title, description) {
         status: 'pending', // pending | researching | done | error | skipped
         summary: '',
         data: null,
+        sources: [],
+        confidence: null,
         updatedAt: null,
     };
 }
@@ -258,6 +276,20 @@ export function ensureOnboarding(id = getActiveWorkspaceId(), seed = {}) {
         if (meta?.category) state.answers.identity.category = meta.category;
         state.completeness = scoreCompleteness(state);
         writeJson(file, state);
+    } else {
+        // Migrate missing answer sections / research cards
+        const fresh = emptyAnswers();
+        state.answers = state.answers || {};
+        for (const key of Object.keys(fresh)) {
+            if (key === 'rawNotes') {
+                if (state.answers.rawNotes == null) state.answers.rawNotes = '';
+                continue;
+            }
+            state.answers[key] = { ...fresh[key], ...(state.answers[key] || {}) };
+        }
+        const baseCards = emptyResearch().cards;
+        state.research = state.research || emptyResearch();
+        state.research.cards = { ...baseCards, ...(state.research.cards || {}) };
     }
     return state;
 }
@@ -813,13 +845,14 @@ function defaultFormats(ids) {
     return (ids || ['post', 'carousel', 'reel']).map((id) => all[id] || all.post);
 }
 
-async function grokCompileEnhancement({ brand, content, state, scrapeMarkdown }) {
+async function grokCompileEnhancement({ brand, content, state, scrapeMarkdown, researchBundle }) {
     if (!process.env.XAI_API_KEY) {
         return { brand, content, provider: 'rules', model: null };
     }
 
     const system = `You are Glampire OS Brand Compiler for an agency GTM creative studio.
-Given client onboarding answers (and optional website scrape), improve a Brand OS JSON.
+You receive: wizard answers + multi-source research fusion (site crawl, competitors, buyer phrases, social, docs).
+Improve Brand OS JSON. Prefer customer language from phrases over marketing fluff.
 Return ONLY valid JSON with shape:
 {
   "brand": { partial brand fields to merge },
@@ -842,6 +875,7 @@ Rules:
 - Ad angles: 3–6 concrete hooks in researchCards.adAngles.data.angles (array of strings).
 - Buyer language: quotes/phrases in researchCards.yourBuyer.data.phrases.
 - Keep colors if provided.
+- Use competitor white space when present.
 - Never output markdown fences.`;
 
     const user = JSON.stringify(
@@ -849,7 +883,8 @@ Rules:
             answers: state.answers,
             currentBrand: brand,
             currentContent: content,
-            websiteScrape: scrapeMarkdown ? scrapeMarkdown.slice(0, 12000) : null,
+            websiteScrape: scrapeMarkdown ? scrapeMarkdown.slice(0, 10000) : null,
+            research: researchBundle || null,
         },
         null,
         2
@@ -1022,73 +1057,170 @@ export async function runResearch(id = getActiveWorkspaceId(), { force = false }
 
     const run = (async () => {
         let state = loadOnboarding(id);
-        state.research = state.research || emptyResearch();
+        state.research = { ...emptyResearch(), ...(state.research || {}) };
+        // Ensure new cards exist on older onboarding.json
+        const baseCards = emptyResearch().cards;
+        state.research.cards = { ...baseCards, ...(state.research.cards || {}) };
         state.research.status = 'running';
         state.research.startedAt = new Date().toISOString();
         state.research.error = null;
+        state.research.confidence = 0;
         state.step = 'research';
         for (const key of Object.keys(state.research.cards)) {
             state.research.cards[key].status = 'researching';
             state.research.cards[key].summary = 'Researching…';
+            state.research.cards[key].sources = [];
         }
         updateWorkspaceMeta({ status: 'researching' }, id);
         saveOnboarding(state, id);
 
         try {
-            const website = state.answers?.identity?.website;
-            let scrape = null;
-            if (website) {
-                scrape = await scrapeWebsite(website);
-                state = loadOnboarding(id);
-                state.research.scraped = {
-                    websiteUrl: scrape.url || website,
-                    websiteMarkdown: scrape.markdown || '',
-                    extracted: { title: scrape.title || null, ok: scrape.ok, error: scrape.error || null },
-                };
-                saveOnboarding(state, id);
-            }
+            const dir = getWorkspaceDir(id);
+            const bundle = await runBrandResearch({
+                answers: state.answers,
+                assets: state.assets,
+                workspaceDir: dir,
+                workspaceId: id,
+            });
 
             state = loadOnboarding(id);
-            const compiled = compileBrandFromAnswers(state, id, scrape);
+            state.research.jobs = bundle.jobs;
+            state.research.confidence = bundle.confidence;
+            state.research.bundlePath = `research/latest.json`;
+            state.research.scraped = {
+                websiteUrl: bundle.site?.url || state.answers?.identity?.website || null,
+                websiteMarkdown: (bundle.fusion?.siteMarkdown || '').slice(0, 8000),
+                extracted: {
+                    pageCount: bundle.site?.pageCount || 0,
+                    confidence: bundle.confidence,
+                    ok: bundle.site?.ok,
+                    competitors: bundle.competitors?.list?.length || 0,
+                    phrases: bundle.phrases?.count || 0,
+                    social: bundle.social?.count || 0,
+                    documents: bundle.documents?.count || 0,
+                },
+            };
+
+            // Apply fusion into answers-adjacent brand compile
+            const compiled = compileBrandFromAnswers(state, id, {
+                title: bundle.site?.structured?.oneLinerHints?.[0],
+                markdown: bundle.fusion?.siteMarkdown || '',
+                fusion: bundle.fusion,
+            });
+            // Merge fusion fields into brand draft
+            if (bundle.fusion) {
+                const f = bundle.fusion;
+                if (f.oneLiner && !compiled.brand.oneLiner) compiled.brand.oneLiner = f.oneLiner;
+                if (f.supporting) compiled.brand.supporting = f.supporting;
+                if (f.promise) compiled.brand.promise = f.promise;
+                if (f.features?.length) compiled.brand.keyFeatures = f.features;
+                if (f.pricingModel) compiled.brand.pricingModel = f.pricingModel;
+                if (f.icpPrimary?.length) {
+                    compiled.brand.icp = {
+                        ...compiled.brand.icp,
+                        primary: [...new Set([...(compiled.brand.icp?.primary || []), ...f.icpPrimary])],
+                    };
+                }
+                if (f.doNotSay?.length) {
+                    compiled.brand.doNotSay = [
+                        ...new Set([...(compiled.brand.doNotSay || []), ...f.doNotSay]),
+                    ];
+                }
+                if (f.ctas?.length) {
+                    compiled.brand.ctas = [...new Set([...(compiled.brand.ctas || []), ...f.ctas])].slice(
+                        0,
+                        6
+                    );
+                    if (!compiled.brand.primaryCta) compiled.brand.primaryCta = f.ctas[0];
+                }
+                if (f.colorHints?.[0] && compiled.brand.colors) {
+                    compiled.brand.colors.brand = f.colorHints[0];
+                }
+                if (f.buyerPhrases?.length) {
+                    compiled.brand.buyerPhrases = f.buyerPhrases.slice(0, 20);
+                }
+                if (f.competitorMatrix?.length) {
+                    compiled.brand.competitorMatrix = f.competitorMatrix;
+                }
+                if (f.adAngles?.length) {
+                    compiled.brand.adAngles = f.adAngles;
+                }
+            }
+
             const enhanced = await grokCompileEnhancement({
                 brand: compiled.brand,
                 content: compiled.content,
                 state,
-                scrapeMarkdown: scrape?.markdown || '',
+                scrapeMarkdown: bundle.fusion?.siteMarkdown || '',
+                researchBundle: {
+                    confidence: bundle.confidence,
+                    fusion: bundle.fusion,
+                    competitors: bundle.competitors,
+                    phrases: {
+                        phrases: bundle.phrases?.phrases,
+                        pains: bundle.phrases?.pains,
+                        wins: bundle.phrases?.wins,
+                    },
+                    social: {
+                        profiles: bundle.social?.profiles,
+                        toneHints: bundle.social?.toneHints,
+                        formatHints: bundle.social?.formatHints,
+                    },
+                    documents: bundle.documents?.signals,
+                },
             });
 
             writeDrafts(enhanced.brand, enhanced.content, id);
 
-            const cards = enhanced.researchCards || rulesResearchCards(state, enhanced.brand);
+            // Prefer orchestrator cards (source-backed); merge Grok card enhancements when present
+            const cards = { ...(bundle.researchCards || {}) };
+            if (enhanced.researchCards) {
+                for (const [key, payload] of Object.entries(enhanced.researchCards)) {
+                    if (!cards[key]) {
+                        cards[key] = payload;
+                        continue;
+                    }
+                    // Keep sources/confidence from orchestrator; enrich summary/data from Grok
+                    cards[key] = {
+                        ...cards[key],
+                        summary: payload.summary || cards[key].summary,
+                        data: { ...(cards[key].data || {}), ...(payload.data || {}) },
+                    };
+                }
+            }
+
             state = loadOnboarding(id);
             for (const [key, payload] of Object.entries(cards)) {
-                if (!state.research.cards[key]) continue;
+                const shell = state.research.cards[key] || cardShell(payload.title || key, payload.description || '');
                 state.research.cards[key] = {
-                    ...state.research.cards[key],
-                    status: 'done',
-                    summary: payload.summary || state.research.cards[key].summary,
+                    ...shell,
+                    title: payload.title || shell.title,
+                    description: payload.description || shell.description,
+                    status: payload.status || 'done',
+                    summary: payload.summary || shell.summary,
                     data: payload.data || payload,
-                    updatedAt: new Date().toISOString(),
+                    sources: payload.sources || [],
+                    confidence: payload.confidence ?? null,
+                    updatedAt: payload.updatedAt || new Date().toISOString(),
                 };
             }
-            // Any still researching → done with fallback
             for (const key of Object.keys(state.research.cards)) {
                 if (state.research.cards[key].status === 'researching') {
                     state.research.cards[key].status = 'done';
                     state.research.cards[key].summary =
-                        state.research.cards[key].summary || 'Compiled from onboarding';
+                        state.research.cards[key].summary || 'Compiled from multi-source research';
                     state.research.cards[key].updatedAt = new Date().toISOString();
                 }
             }
 
             state.research.status = 'done';
             state.research.completedAt = new Date().toISOString();
+            state.research.confidence = bundle.confidence;
             state.compiledAt = new Date().toISOString();
             state.step = 'review';
             if (!state.stepsCompleted.includes('research')) {
                 state.stepsCompleted = [...state.stepsCompleted, 'research'];
             }
-            // Soft-apply draft into live brand so review UI can show it (still not locked)
             writeBrandFull(enhanced.brand, id);
             writeContentFull(enhanced.content, id);
             updateWorkspaceMeta(
@@ -1210,6 +1342,9 @@ export function getOnboardingPublic(id = getActiveWorkspaceId()) {
             startedAt: state.research?.startedAt,
             completedAt: state.research?.completedAt,
             error: state.research?.error || null,
+            confidence: state.research?.confidence ?? 0,
+            jobs: state.research?.jobs || null,
+            bundlePath: state.research?.bundlePath || null,
             cards: state.research?.cards || {},
             scraped: {
                 websiteUrl: state.research?.scraped?.websiteUrl || null,

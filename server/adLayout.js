@@ -108,12 +108,13 @@ export function buildLayoutTokens({ w, h, aspectId = '', brand = {} } = {}) {
   const profile = layoutProfile(w, h, aspectId);
   const safe = SAFE_ZONES[profile] || SAFE_ZONES.square;
 
-  // Story: larger bottom pad so CTA clears platform chrome
-  let padTop = px(design.space.pad);
-  let padBot = px(design.space.pad);
+  // Horizontal pad always from S (never story vertical safe zones — those truncate type width)
+  const padX = px(design.space.pad);
+  let padTop = padX;
+  let padBot = padX;
   if (design.safeZoneVertical && profile === 'story') {
     padTop = Math.max(padTop, Math.round(h * safe.top));
-    padBot = Math.max(padBot, Math.round(h * safe.bottom * 0.55)); // keep CTA usable; full 20% is often too much for ads
+    padBot = Math.max(padBot, Math.round(h * safe.bottom * 0.55)); // CTA clears chrome; keep usable
   }
 
   const h1 = px(design.type.headline);
@@ -136,7 +137,9 @@ export function buildLayoutTokens({ w, h, aspectId = '', brand = {} } = {}) {
     displayFont: design.displayFont,
     maxSupportLines: design.maxSupportLines,
     dedupeSupport: design.dedupeSupport,
-    pad: Math.max(padTop, padBot) === padTop && padTop === padBot ? padTop : Math.max(padTop, padBot),
+    /** Horizontal inset — always S-based, never story top/bottom chrome */
+    pad: padX,
+    padX,
     padTop,
     padBot,
     gapH1Body: px(design.space.gapH1Body),
@@ -203,35 +206,55 @@ export function stackFromBottom({
   return { ctaY, sY0, hY0, typeTop };
 }
 
+/** Normalize for copy comparison (workspace-agnostic). */
+export function normCopy(t) {
+  return String(t || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * True when two strings are the same claim (support must not restate headline).
+ */
+export function isNearDuplicate(a, b, { threshold = 0.5 } = {}) {
+  const na = normCopy(a);
+  const nb = normCopy(b);
+  if (!na || !nb) return false;
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+  const aw = na.split(' ').filter((w) => w.length > 3);
+  const bw = nb.split(' ').filter((w) => w.length > 3);
+  if (!aw.length || !bw.length) return false;
+  const setA = new Set(aw);
+  const hit = bw.filter((w) => setA.has(w)).length;
+  return hit / Math.min(aw.length, bw.length) >= threshold;
+}
+
 /**
  * Drop support that repeats the headline (multi-client copy safety).
  */
-export function cleanSupport(raw, headline = '', { maxLen = 52, dedupe = true } = {}) {
+export function cleanSupport(raw, headline = '', { maxLen = 56, dedupe = true } = {}) {
   let s = String(raw || '')
     .replace(/\s+/g, ' ')
     .trim();
   if (!s) return '';
 
-  if (dedupe && headline) {
-    const norm = (t) =>
-      t
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    const nh = norm(headline);
-    const ns = norm(s);
-    if (nh && (ns === nh || nh.includes(ns) || ns.includes(nh))) return '';
-    if (nh && ns) {
-      const hw = new Set(nh.split(' ').filter((w) => w.length > 3));
-      const sw = ns.split(' ').filter((w) => w.length > 3);
-      const hit = sw.filter((w) => hw.has(w)).length;
-      if (sw.length && hit / sw.length >= 0.55) return '';
-    }
+  if (dedupe && headline && isNearDuplicate(s, headline, { threshold: 0.5 })) {
+    return '';
   }
 
-  if (s.length > maxLen) s = s.slice(0, maxLen - 2).replace(/\s+\S*$/, '');
+  if (s.length > maxLen) s = s.slice(0, maxLen - 1).replace(/\s+\S*$/, '').trim();
   return s;
+}
+
+/**
+ * Max characters per line for a given font size and column width.
+ * Outfit / modern sans ≈ 0.48–0.52em average advance (measured ~0.47 for Outfit Bold).
+ */
+export function charsPerLine(textW, fontSize, { bold = true } = {}) {
+  const factor = bold ? 0.5 : 0.46;
+  return Math.max(10, Math.floor(textW / (fontSize * factor)));
 }
 
 /** Self-check hooks for generators / QA (skill checklist) */

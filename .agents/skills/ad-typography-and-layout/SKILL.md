@@ -74,13 +74,16 @@ All type and major spacing = **fraction of \(S\)** (implemented in `server/adLay
 | Headline | 7.2% | Readable in &lt;1.5s |
 | Support / body | 3.2% (floor 2.8%) | Secondary; never tiny |
 | CTA label | 3.0% | Clear action |
-| Pad | 7.4% | Safe margins |
+| Pad X | 7.4% of \(S\) | Horizontal margins always (never story top/bottom) |
+| Pad top/bot | 7.4% of \(S\) | Story profile may raise vertical pads for chrome |
 | CTA height | 7.4% | Full-width bar, not a micro-pill |
 | Gap H1 → body | 2.6% of \(S\) | No visual collision |
 | Gap body → CTA | 3.4% of \(S\) | Clear separation |
 
 **Line-height:** headline ~1.18–1.22; body ~1.35.  
-**Support:** max 1 line; drop if it repeats the headline (dedupe).
+**Support:** max 1 line; drop if it repeats the headline (dedupe).  
+**Wrap:** use ~0.5em average char width (Outfit-class sans); auto-shrink headline slightly before ellipsis.  
+**Copy:** Brand OS `adSupport` / short `supporting` preferred; never use `promise` when it restates `oneLiner`.
 
 ---
 

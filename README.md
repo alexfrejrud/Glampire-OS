@@ -42,10 +42,19 @@ Client workspaces live under `clients/<id>/` (e.g. any onboarded brand).
 ### New client onboarding
 
 1. Sidebar → **New workspace…** opens the fullscreen Brand OS wizard  
-2. Capture identity → offer → ICP → market → voice → brand kit → channels  
-3. **Compile Brand Brain** scrapes the site (if URL), runs rules + Grok compiler, fills research map  
-4. **Lock Brand OS** writes final `brand.json` / `content.json` and sets status `ready`  
-5. Studio generate/approve/publish uses that locked brain  
+2. Capture identity → offer → ICP → **market & signals** (competitor URLs, reviews, social) → voice → brand kit → channels  
+3. **Compile Brand Brain** runs multi-source research in parallel:
+   - Multi-page site crawl (home, pricing, features, about, FAQ, proof)
+   - Competitor URL matrix + white-space angles
+   - Buyer phrase bank (wizard notes + review URLs + site quotes)
+   - Social handle snapshot (public pages, no OAuth)
+   - Brand guide / PDF text extract when uploaded  
+   Results land in the research map with **confidence + sources**, and under `clients/<id>/research/latest.json`  
+4. Grok (if `XAI_API_KEY`) enhances the fused Brand OS; rules compiler always runs  
+5. **Lock Brand OS** writes final `brand.json` / `content.json` and sets status `ready`  
+6. Studio generate/approve/publish uses that locked brain  
+
+Optional: set `RESEARCH_JINA_FALLBACK=0` in `.env` to disable the public reader fallback for hard-to-scrape JS sites.
 
 Resume incomplete onboarding from **Finish onboarding** in the sidebar, or the warning banner.
 
