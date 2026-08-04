@@ -33,6 +33,16 @@
     "sans": "Outfit, Inter, system-ui, sans-serif",
     "mono": "Fragment Mono, ui-monospace, monospace"
   },
+  "adDesign": {
+    "displayFont": "Outfit",
+    "headlineScale": 0.072,
+    "bodyScale": 0.032,
+    "ctaHeightScale": 0.074,
+    "padScale": 0.074,
+    "maxSupportLines": 1,
+    "dedupeSupport": true,
+    "safeZoneVertical": true
+  },
   "icp": {
     "primary": [
       "Solo handyman businesses",

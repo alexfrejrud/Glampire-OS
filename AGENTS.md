@@ -32,3 +32,20 @@ MORE CLI:
   swizzle <Name>     eject component source for deep customization
   upgrade --apply    run after any @astryxdesign/core bump
 <!-- ASTRYX:END -->
+
+## Multi-workspace ads (Brand OS + layout skill)
+
+Still ads are **not** freeform AI design. Split responsibilities:
+
+| Layer | Source | Per client? |
+|---|---|---|
+| Photo plate | Grok / image API | Yes (`photographyStyle`, ICP) |
+| Type / logo / CTA | `adCompose` + Brand OS | Colors, CTA, logo, fonts |
+| Canvas math | `server/adLayout.js` | No — \(S=\min(W,H)\) formulas |
+
+- Skill: `.agents/skills/ad-typography-and-layout/SKILL.md`
+- Optional overrides: `clients/<id>/brand.json` → `adDesign`
+- Logo: `clients/<id>/assets/*logo*` only (never hardcode another client)
+- After layout changes: **Recompose type** (reuse plate)
+
+Do not ask the image model to paint brand type or logos.
