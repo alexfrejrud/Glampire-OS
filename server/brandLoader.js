@@ -329,16 +329,25 @@ export function createWorkspace({ id, name, oneLiner = '', category = '' }) {
         },
         icp: { primary: [], secondary: [], later: [] },
         doNotSay: [],
-        photographyStyle: 'documentary commercial photography, authentic subjects, natural light',
+        // Filled for real by Brand OS onboarding compile (visual world + ICP cast)
+        photographyStyle:
+            'documentary commercial photography, authentic subjects matching brand ICP, natural light — complete onboarding to lock visual world',
         imageNegatives:
-            'no text of any kind, no logos, no brand names painted in scene, no fake UI gibberish',
+            'no text of any kind, no logos, no brand names painted in scene, no fake UI gibberish, no wrong-industry clichés',
         compositionNotes:
-            'One hero moment, clean negative space for later text overlay, medium shot preferred.',
+            'One hero moment matching brand ICP, clean negative space for later text overlay, medium shot preferred.',
+        visualWorld: null,
+        castBrief: '',
+        environment: '',
+        wardrobe: '',
         defaultVideoStyleId: 'documentary_commercial',
         defaultFlowId: 'pain_to_cta',
         defaultVideoModelId: 'grok',
         defaultDeliveryMode: 'caption_talk',
         defaultGenerateAudio: false,
+        // Platform default: Whisper spoken captions on every workspace (opt-out per brand)
+        defaultUseAsrCaptions: true,
+        defaultBrandChrome: 'organic',
     };
     writeJson(path.join(dir, 'brand.json'), brand);
 

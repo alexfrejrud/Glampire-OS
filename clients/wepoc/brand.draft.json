@@ -1,0 +1,231 @@
+{
+  "id": "wepoc",
+  "name": "WEPOC",
+  "website": "https://wepoc.co/",
+  "category": "music community",
+  "oneLiner": "Create, consult & connect in a community built for independent artists of color",
+  "supporting": "Music industry education, Virtual A&R guidance, and real networking with artists and professionals \u2014 all in one app for $29.99/year.",
+  "promise": "Learn how the music business works, grow your network, and make smarter career moves without the hype.",
+  "primaryCta": "See How It Works",
+  "secondaryCta": "Download App",
+  "ctas": [
+    "See How It Works",
+    "Download App",
+    "Learn more"
+  ],
+  "colors": {
+    "ink": "#F0F0F0",
+    "inkSoft": "#C8C8C8",
+    "brand": "#10E5B5",
+    "brandDeep": "#0BB892",
+    "accent": "#FA64BE",
+    "accentSoft": "#FFB3E0",
+    "surface": "#0A0A0A",
+    "bg": "#000000",
+    "muted": "#8A8A8A",
+    "dark": "#000000"
+  },
+  "fonts": {
+    "sans": "Inter, system-ui, sans-serif",
+    "display": "Anton, Inter, system-ui, sans-serif",
+    "marquee": "Bungee, Anton, system-ui, sans-serif",
+    "mono": "JetBrains Mono, ui-monospace, monospace"
+  },
+  "icp": {
+    "primary": [
+      "Emerging independent artists",
+      "Independent songwriters",
+      "Independent music producers"
+    ],
+    "secondary": [
+      "Artist managers and aspiring music executives",
+      "Music entrepreneurs and creative service providers",
+      "Established creators seeking collaborators"
+    ],
+    "later": [
+      "Record labels",
+      "Brands seeking music partnerships"
+    ]
+  },
+  "doNotSay": [
+    "Guaranteed success",
+    "Get discovered overnight",
+    "Get signed by a major label",
+    "Become famous",
+    "Go viral",
+    "Guaranteed streams or followers",
+    "Exclusive industry access",
+    "We will make you a star",
+    "The only platform artists need",
+    "Revolutionary or game-changing",
+    "Your network guarantees your net worth",
+    "AI replaces managers or A&R professionals",
+    "Guaranteed introductions",
+    "Guaranteed collaborations or placements",
+    "Proven increase in streams or income",
+    "Thousands of active members",
+    "Industry-leading network"
+  ],
+  "photographyStyle": "documentary commercial photography, authentic subjects, natural light, single clear subject, intentional negative space for text overlay",
+  "imageNegatives": "no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clich\u00e9s",
+  "compositionNotes": "One hero moment, clean negative space for later overlay, medium shot preferred.",
+  "voice": "Authentic, confident, culturally aware, and encouraging\u2014music-industry expertise expressed in clear, practical language without hype or corporate jargon.",
+  "pricingModel": "$29.99/year for WEPOC membership",
+  "keyFeatures": [
+    "Music industry education and exclusive insights",
+    "Virtual A&R career guidance",
+    "Networking with artists and industry professionals",
+    "Global creator collaboration",
+    "Artist development resources",
+    "Community-driven opportunities"
+  ],
+  "competitors": [
+    "Vampr",
+    "Groover",
+    "BandLab",
+    "Music Gateway",
+    "DISCO"
+  ],
+  "communities": [
+    "Reddit \u2014 r/WeAreTheMusicMakers",
+    "Reddit \u2014 r/musicmarketing",
+    "Reddit \u2014 r/musicindustry",
+    "Reddit \u2014 r/independentmusic",
+    "Reddit \u2014 r/Songwriters"
+  ],
+  "defaultVideoStyleId": "documentary_commercial",
+  "defaultFlowId": "pain_to_cta",
+  "defaultVideoModelId": "grok",
+  "defaultDeliveryMode": "caption_talk",
+  "defaultGenerateAudio": false,
+  "defaultBrandChrome": "organic",
+  "defaultUseAsrCaptions": true,
+  "onboardingCompiledAt": "2026-08-04T07:07:26.257Z",
+  "scrapeTitle": "CONNECT + CONSULT + CREATE",
+  "buyerPhrases": [
+    "Create, Consult & Connect",
+    "Music industry education",
+    "Connect with artists and professionals",
+    "Collaborate with creators worldwide",
+    "Virtual A&R guidance",
+    "Artist development resources",
+    "Community-driven opportunities",
+    "Join the movement. Build your network. Develop your career."
+  ],
+  "competitorMatrix": [
+    {
+      "name": "Vampr",
+      "url": null,
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "name-only"
+    },
+    {
+      "name": "Groover",
+      "url": null,
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "name-only"
+    },
+    {
+      "name": "BandLab",
+      "url": null,
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "name-only"
+    },
+    {
+      "name": "Music Gateway",
+      "url": null,
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "name-only"
+    },
+    {
+      "name": "DISCO",
+      "url": null,
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "name-only"
+    },
+    {
+      "name": "The #1 Music Industry Network",
+      "url": "https://www.vampr.me/",
+      "claim": "Vampr is the number one social platform helping creatives find people to collaborate with, create new music and monetize their work.",
+      "cta": "Get the app",
+      "pricing": "",
+      "topFeatures": [
+        "Looking for a vocalist for R&B song (royalty split) gabe-batiz % of publishing royalties R&B Remote",
+        "Looking for a composer for a Pop & R&B song lyssuh % of mechanical royalties, Credit Pop, R&B, Soul Remote",
+        "Looking for a vocal melody writer for electronic tracks zesty-lorange Credit Electronic Remote"
+      ],
+      "confidence": "high"
+    },
+    {
+      "name": "Groover",
+      "url": "https://groover.co/en/",
+      "claim": "Groover is the best way to promote your music to blogs, radios, labels and Spotify playlisters. Get heard, get coverage and guaranteed feedback in 7 days.",
+      "cta": "Sign up",
+      "pricing": "Starting at",
+      "topFeatures": [
+        "Promote your music",
+        "Learn & Grow",
+        "Apply as curator"
+      ],
+      "confidence": "high"
+    },
+    {
+      "name": "BandLab",
+      "url": "https://www.bandlab.com/",
+      "claim": "The cloud platform where musicians and fans create music, collaborate, and engage with each other across the globe",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "high"
+    },
+    {
+      "name": "musicgateway.com",
+      "url": "https://www.musicgateway.com",
+      "claim": "(not extracted)",
+      "cta": "",
+      "pricing": "",
+      "topFeatures": [],
+      "confidence": "low"
+    },
+    {
+      "name": "Music Sharing & Management for Artists",
+      "url": "https://www.disco.ac/solutions/artists-creators",
+      "claim": "Share your music like a pro. Manage files, create playlists, and build EPKs with DISCO\u2014the platform trusted by the industry.",
+      "cta": "Pricing",
+      "pricing": "free",
+      "topFeatures": [
+        "Platform",
+        "Resources",
+        "Music Supervisors"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "adAngles": [
+    "Simple & focused \u2014 not another bloated all-in-one platform",
+    "Own the job-to-be-done the market under-serves",
+    "Peer voice from real customers \u2014 not brochure SaaS",
+    "Show the before/after friction competitors gloss over",
+    "Customer language: \u201ct just another social platform. It\u201d",
+    "Promise: AI assistant and community for creative people",
+    "Feature demo: Music industry education and exclusive insights24/7 Virtual A&R career guidanceNetworking with artists and industry professionalsGlobal creator collaborationArtist development resourcesCommunity-driven opportunities",
+    "Before / after the old workflow",
+    "Peer social proof",
+    "Offer clarity: $29.99/year for WEPOC membership"
+  ]
+}

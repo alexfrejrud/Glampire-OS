@@ -241,9 +241,12 @@ function StudioSideNav({
     ];
     const needsOnboarding = Boolean(activeWorkspace?.needsOnboarding);
     const workspaceNav = [
-        ...(needsOnboarding
-            ? [{ id: 'onboarding', label: 'Finish onboarding', icon: WandSparkles, badge: '!' }]
-            : []),
+        {
+            id: 'onboarding',
+            label: needsOnboarding ? 'Finish Brand OS' : 'Brand OS',
+            icon: WandSparkles,
+            badge: needsOnboarding ? '!' : null,
+        },
         { id: 'brand', label: 'Brand kit', icon: CircleDot },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
@@ -365,6 +368,7 @@ function StudioSideNav({
                         isSelected={view === id}
                         onClick={() => {
                             if (id === 'onboarding') {
+                                // Always open Brand OS wizard (edit path if locked)
                                 onOpenOnboarding?.();
                                 return;
                             }
@@ -1809,7 +1813,7 @@ function QueueView({
 
 /* ───────────────── brand (editable) ───────────────── */
 
-function BrandView({ brand, onSaved, onToast }) {
+function BrandView({ brand, onSaved, onToast, onOpenOnboarding, onEditBrandOs, workspace }) {
     const [draft, setDraft] = useState(null);
     const [saving, setSaving] = useState(false);
     const [tab, setTab] = useState('positioning'); // positioning | colors | visual | icp
@@ -1915,6 +1919,22 @@ function BrandView({ brand, onSaved, onToast }) {
                 }
                 actions={
                     <>
+                        <Button
+                            label="Edit Brand OS"
+                            variant="secondary"
+                            icon={<WandSparkles size={16} />}
+                            onClick={() => {
+                                if (
+                                    workspace?.status === 'ready' ||
+                                    workspace?.lockedAt ||
+                                    !workspace?.needsOnboarding
+                                ) {
+                                    onEditBrandOs?.();
+                                } else {
+                                    onOpenOnboarding?.();
+                                }
+                            }}
+                        />
                         <Button
                             label="Reset defaults"
                             variant="ghost"
@@ -2933,7 +2953,13 @@ function SettingsView({
     publishUser,
     themeMode,
     onThemeMode,
+    onOpenOnboarding,
+    onEditBrandOs,
 }) {
+    const status = workspace?.status || '—';
+    const needsOnboarding = Boolean(workspace?.needsOnboarding);
+    const locked = status === 'ready' || Boolean(workspace?.lockedAt);
+
     return (
         <VStack gap={5} as="main">
             <PageHeader
@@ -2958,6 +2984,60 @@ function SettingsView({
                         <Text type="supporting" color="secondary" size="sm" as="p">
                             {(workspaces || []).length} workspace
                             {(workspaces || []).length === 1 ? '' : 's'} — switch from the sidebar menu.
+                        </Text>
+                    </VStack>
+                </Card>
+                <Card padding={4}>
+                    <VStack gap={3}>
+                        <Heading level={3}>Brand OS onboarding</Heading>
+                        <Text type="supporting" color="secondary" size="sm" as="p">
+                            Vision capture, research map, and lock. Always available — edit anytime, then
+                            re-lock so packs stay client-true.
+                        </Text>
+                        <HStack gap={2} vAlign="center" wrap="wrap">
+                            <Badge
+                                label={`Status: ${status}`}
+                                variant={
+                                    locked
+                                        ? 'success'
+                                        : needsOnboarding
+                                          ? 'warning'
+                                          : 'neutral'
+                                }
+                            />
+                            {workspace?.completenessScore != null ? (
+                                <Badge
+                                    label={`${workspace.completenessScore}% complete`}
+                                    variant="neutral"
+                                />
+                            ) : null}
+                        </HStack>
+                        <HStack gap={2} wrap="wrap">
+                            <Button
+                                label={
+                                    needsOnboarding
+                                        ? 'Continue onboarding'
+                                        : locked
+                                          ? 'Edit Brand OS'
+                                          : 'Open Brand OS'
+                                }
+                                variant="primary"
+                                icon={<WandSparkles size={16} />}
+                                onClick={() => {
+                                    if (locked) onEditBrandOs?.();
+                                    else onOpenOnboarding?.();
+                                }}
+                            />
+                            <Button
+                                label="Open wizard"
+                                variant="secondary"
+                                onClick={() => onOpenOnboarding?.()}
+                            />
+                        </HStack>
+                        <Text type="supporting" size="xsm" color="secondary" as="p">
+                            {locked
+                                ? 'Edit unlocks the brain for changes, then Lock again when done.'
+                                : 'Complete research and Lock before relying on generated packs.'}
                         </Text>
                     </VStack>
                 </Card>
@@ -3411,6 +3491,27 @@ function App() {
     function handleOpenOnboarding() {
         setOnboardingMode('resume');
         setOnboardingOpen(true);
+    }
+
+    /** Unlock locked Brand OS and open wizard for edits (keeps answers + research). */
+    async function handleEditBrandOs() {
+        setOnboardingMode('resume');
+        try {
+            const locked =
+                activeWorkspace?.status === 'ready' || Boolean(activeWorkspace?.lockedAt);
+            if (locked) {
+                const res = await api.reopenOnboarding({ step: 'review' });
+                if (res.workspace) setActiveWorkspace(res.workspace);
+                const wsData = await api.workspaces();
+                setWorkspaces(wsData.workspaces || []);
+                setToast('Brand OS unlocked for edits — re-lock when finished');
+            }
+            setOnboardingOpen(true);
+        } catch (e) {
+            // Still open wizard so operator can continue even if reopen fails
+            setOnboardingOpen(true);
+            setToast(e.message || 'Opened Brand OS wizard');
+        }
     }
 
     async function handleOnboardingComplete(result) {
@@ -4058,7 +4159,17 @@ function App() {
             activeWorkspace={activeWorkspace}
             onSwitchWorkspace={handleSwitchWorkspace}
             onCreateWorkspace={handleStartCreateWorkspace}
-            onOpenOnboarding={handleOpenOnboarding}
+            onOpenOnboarding={() => {
+                // Sidebar Brand OS: unlock if locked, then open wizard
+                if (
+                    activeWorkspace?.status === 'ready' ||
+                    activeWorkspace?.lockedAt
+                ) {
+                    handleEditBrandOs();
+                } else {
+                    handleOpenOnboarding();
+                }
+            }}
             themeMode={themeMode}
             onThemeMode={handleThemeMode}
         />
@@ -4161,8 +4272,11 @@ function App() {
                                 {view === 'brand' && (
                                     <BrandView
                                         brand={brand}
+                                        workspace={activeWorkspace}
                                         onSaved={(b) => setBrand(b)}
                                         onToast={setToast}
+                                        onOpenOnboarding={handleOpenOnboarding}
+                                        onEditBrandOs={handleEditBrandOs}
                                     />
                                 )}
                                 {view === 'settings' && (
@@ -4173,6 +4287,8 @@ function App() {
                                         publishUser={publishUser}
                                         themeMode={themeMode}
                                         onThemeMode={handleThemeMode}
+                                        onOpenOnboarding={handleOpenOnboarding}
+                                        onEditBrandOs={handleEditBrandOs}
                                     />
                                 )}
                             </>

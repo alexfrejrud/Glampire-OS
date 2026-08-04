@@ -109,7 +109,7 @@ const BANKS = {
     ],
     supports: [
       'Practical tools for how you already work.',
-      'No enterprise bloat — just the job.',
+      'No enterprise bloat. Just the job.',
       'Move work forward faster.',
     ],
     primary: [
@@ -150,7 +150,7 @@ const BANKS = {
     ],
     primary: [
       'One place for the work that used to live everywhere else.',
-      'From first touch to finished — without the chaos.',
+      'From first touch to finished, without the chaos.',
     ],
   },
   beta: {
@@ -164,7 +164,7 @@ const BANKS = {
     supports: [
       'Start with the outcome that matters.',
       'Built with the people who do the work.',
-      'Practical — not fluffy marketing.',
+      'Practical, not fluffy marketing.',
     ],
     primary: [
       'Get started and see the difference.',
@@ -178,8 +178,30 @@ function pick(arr, i) {
   return arr[i % arr.length];
 }
 
-function scrubDoNotSay(text, doNotSay = []) {
+/**
+ * Still ads never use em/en dashes or " - " pause dashes (AI habit).
+ * Keeps mid-word hyphens (real-time, owner-operator).
+ */
+export function scrubAdDashes(text) {
   let t = String(text || '');
+  // Em dash, en dash, horizontal bar, minus as punctuation → sentence break
+  t = t.replace(/\s*[—–―−]\s*/g, '. ');
+  // Spaced hyphen used as a pause: "Practical - not fluffy"
+  t = t.replace(/(\S)\s+-\s+(\S)/g, '$1. $2');
+  // Cleanup double periods / spacing
+  t = t
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s+\./g, '.')
+    .replace(/\.\s+/g, '. ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  // Capitalize after ". " when we introduced a break mid-line
+  t = t.replace(/\. ([a-z])/g, (_, c) => `. ${c.toUpperCase()}`);
+  return t;
+}
+
+function scrubDoNotSay(text, doNotSay = []) {
+  let t = scrubAdDashes(text);
   for (const phrase of doNotSay) {
     if (!phrase) continue;
     const re = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
@@ -193,7 +215,7 @@ function scrubDoNotSay(text, doNotSay = []) {
     .replace(/full field service/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
-  return t;
+  return scrubAdDashes(t);
 }
 
 function resolveAngleId(angleId, index) {

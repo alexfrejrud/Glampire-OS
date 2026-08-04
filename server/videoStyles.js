@@ -170,8 +170,8 @@ export const VIDEO_STYLES = {
             density: 'medium',
             titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'dialogue_bottom',
-            motionText: 'soft_fade',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
             faceSafe: true,
         },
         imagePromptBlock: [
@@ -207,9 +207,12 @@ export const VIDEO_STYLES = {
     documentary_commercial: {
         id: 'documentary_commercial',
         label: 'Documentary commercial',
-        description: 'Premium but real — Taskiz weekly default. Clean field lifestyle ads.',
+        description:
+            'Premium but real — multi-workspace default. Clean lifestyle ads; spoken lines get ASR captions, not keyword title cards.',
         bestFor: ['weekly', 'trust', 'demo'],
         recommendedVideoModelId: 'grok',
+        // When plate has speech, storyAssembler ASR + caption_talk brand default burn karaoke.
+        deliveryMode: 'caption_talk',
         qualityLane: 'documentary_brand',
         aspectDefault: '9:16',
         camera: 'stable tripod or smooth gimbal, medium shots, intentional push-in',
@@ -219,15 +222,16 @@ export const VIDEO_STYLES = {
         framing:
             'rule of thirds, leave lower-third or side negative space for titles; one hero subject',
         subjectRules:
-            'authentic contractor 30s–50s, real residential job site or van interior, phone as a tool (screen unreadable)',
+            'authentic subject matching Brand OS ICP, real environment, phone as a tool (screen unreadable)',
         pacing: 'deliberate; 4–6s per beat; no whip pans',
-        colorGrade: 'natural with subtle cool-violet undertone; clean neutrals',
+        colorGrade: 'natural brand-neutral grade; clean neutrals',
         graphics: {
             density: 'medium',
-            titleStyle: 'lower_third',
+            // word_reveal so script fallback is dialogue karaoke, not "The old way" keywords
+            titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'clean_sans',
-            motionText: 'fade_up',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
         },
         imagePromptBlock:
             'Photoreal documentary commercial photograph, authentic field lifestyle, premium but practical, natural skin texture, real job site, shallow depth of field, intentional negative space for text overlay later, clean modern composition, not stock-photo cliché, not amateur phone grain',
@@ -256,10 +260,10 @@ export const VIDEO_STYLES = {
         colorGrade: 'phone-camera natural, slightly cool-neutral, not color-graded cinema',
         graphics: {
             density: 'high',
-            titleStyle: 'bold_hook',
+            titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'big_center',
-            motionText: 'pop_in',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
         },
         imagePromptBlock:
             'Authentic vertical UGC smartphone still, 9:16, phone-shot feel, real contractor on a job site between tasks, casual and unposed, natural available or overcast light, slightly imperfect framing, relatable social-first look, real skin and fabric texture',
@@ -287,10 +291,10 @@ export const VIDEO_STYLES = {
         colorGrade: 'subtle cool→warm progression across the arc',
         graphics: {
             density: 'high',
-            titleStyle: 'hook_then_lower',
+            titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'phrase_per_beat',
-            motionText: 'fade_up',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
         },
         imagePromptBlock:
             'Narrative commercial still for a problem-solution arc: clear emotional beat, documentary realism, leave space for headline overlay, contractor-native environment',
@@ -318,10 +322,10 @@ export const VIDEO_STYLES = {
         colorGrade: 'clean commercial with brand-violet ambient reflection optional, subtle',
         graphics: {
             density: 'medium',
-            titleStyle: 'minimal_caption',
+            titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'clean_sans',
-            motionText: 'fade_up',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
         },
         imagePromptBlock:
             'Premium product lifestyle photograph, contractor hands using smartphone on site, screen blank or unreadable, soft bokeh job-site background, commercial polish without fashion editorial feel',
@@ -349,10 +353,10 @@ export const VIDEO_STYLES = {
         colorGrade: 'warm natural filmic, low contrast',
         graphics: {
             density: 'low',
-            titleStyle: 'soft_center',
+            titleStyle: 'word_reveal',
             endCard: true,
-            captionStyle: 'clean_sans',
-            motionText: 'fade_up',
+            captionStyle: 'karaoke_bottom',
+            motionText: 'word_highlight',
         },
         imagePromptBlock:
             'Warm documentary portrait of a contractor in a calm moment, natural golden or soft light, human and trustworthy, premium quiet commercial still',

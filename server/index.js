@@ -250,9 +250,11 @@ app.post('/api/onboarding/lock', (req, res) => {
   }
 });
 
-app.post('/api/onboarding/reopen', (_req, res) => {
+app.post('/api/onboarding/reopen', (req, res) => {
   try {
-    res.json({ onboarding: reopenOnboarding() });
+    const step = req.body?.step || req.body?.stepId || null;
+    const onboarding = reopenOnboarding(getActiveWorkspaceId(), { step });
+    res.json({ onboarding, workspace: getWorkspacePublic() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

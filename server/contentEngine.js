@@ -7,26 +7,12 @@ import {
   buildVideoPrompt,
 } from './brand.js';
 import { getVideoStyle, styleDirectorBrief } from './videoStyles.js';
+import { brandTalkSubjects, brandTalkCharacter, brandAdaptStylePack } from './brandCast.js';
 import { expandBeats, getFlow, inferFlowId } from './flows.js';
 import { getVideoModel, estimateVideoCost } from './videoModels.js';
 
 export { getBrandPublic };
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-/**
- * Shared continuity plate for talk-story reels.
- * Same person + wardrobe across beats → better I2V identity + assemble cut quality.
- */
-const TALK_CHAR =
-  'the same authentic on-camera subject, mid-30s to mid-50s, natural skin texture, plain unbranded clothing, raw UGC not stock';
-
-function talkSubjects(hookScene, tensionScene, resolveScene) {
-  return {
-    imageSubject: `Vertical 9:16 medium close-up of ${TALK_CHAR}, looking at camera mid-conversation, ${hookScene}`,
-    tensionSubject: `Vertical 9:16 medium close-up of ${TALK_CHAR}, same wardrobe same face, looking at camera, ${tensionScene}`,
-    resolveSubject: `Vertical 9:16 medium close-up of ${TALK_CHAR}, same wardrobe same face, looking at camera, ${resolveScene}`,
-  };
-}
 
 /**
  * Generic idea pool from active Brand OS (any client).
@@ -39,6 +25,8 @@ function buildBrandIdeaPool(brand) {
   const features = brand.keyFeatures || [];
   const icp = (brand.icp?.primary || [])[0] || 'your customer';
   const photo = brand.photographyStyle || 'documentary commercial photography, authentic subjects, natural light';
+  const cast = brandTalkCharacter(brand);
+  const talk = brandTalkSubjects(brand);
 
   return [
     {
@@ -48,7 +36,7 @@ function buildBrandIdeaPool(brand) {
       body: oneLiner || `There's a clearer path with ${name}.`,
       caption: `${oneLiner}\n\n${brand.supporting || ''}\n\n${cta}`.trim(),
       cta,
-      imageSubject: `Photoreal scene for ${name}: ${icp} in a real-world moment of friction, ${photo}, intentional negative space`,
+      imageSubject: `Photoreal scene for ${name}: ${icp} in ${cast.environment}, moment of friction, ${photo}, intentional negative space`,
       videoMotion: 'Gentle camera push-in, natural light shift',
     },
     {
@@ -58,7 +46,7 @@ function buildBrandIdeaPool(brand) {
       body: brand.supporting || brand.promise || oneLiner,
       caption: `${brand.supporting || oneLiner}\n\n${cta}`.trim(),
       cta,
-      imageSubject: `Product or outcome moment for ${name}, ${photo}, clean composition for later text`,
+      imageSubject: `Product or outcome moment for ${name} with ${icp}, ${cast.environment}, ${photo}, clean composition for later text`,
       videoMotion: 'Subtle cinematic push-in',
     },
     {
@@ -72,17 +60,17 @@ function buildBrandIdeaPool(brand) {
         {
           headline: 'Before',
           body: 'The old workflow. Friction, scatter, delay.',
-          imageSubject: `Before-state friction for ${icp}, realistic environment, ${photo}`,
+          imageSubject: `Before-state friction for ${icp}, ${cast.environment}, ${photo}`,
         },
         {
           headline: 'After',
           body: oneLiner || `Clarity with ${name}`,
-          imageSubject: `After-state calm outcome for ${icp}, ${photo}`,
+          imageSubject: `After-state calm outcome for ${icp}, ${cast.environment}, ${photo}`,
         },
         {
           headline: cta,
           body: brand.promise || brand.supporting || oneLiner,
-          imageSubject: `Hero brand moment for ${name}, ${photo}, empty lower third`,
+          imageSubject: `Hero brand moment for ${name} · ${icp}, ${photo}, empty lower third`,
         },
       ],
     },
@@ -93,7 +81,7 @@ function buildBrandIdeaPool(brand) {
       body: brand.supporting || oneLiner,
       caption: `${brand.supporting || oneLiner}\n\n${cta}`.trim(),
       cta,
-      imageSubject: `Educational lifestyle still for ${name}, ${photo}`,
+      imageSubject: `Educational lifestyle still for ${name} · ${icp}, ${cast.environment}, ${photo}`,
       videoMotion: 'Slow parallax, calm commercial energy',
     },
     {
@@ -103,7 +91,7 @@ function buildBrandIdeaPool(brand) {
       body: brand.promise || oneLiner,
       caption: `${oneLiner}\n\n${cta}`.trim(),
       cta,
-      imageSubject: `Trust-building authentic moment for ${name}, ${photo}`,
+      imageSubject: `Trust-building authentic moment for ${name} · ${icp}, ${photo}`,
       videoMotion: 'Gentle push-in',
     },
     {
@@ -129,11 +117,7 @@ function buildBrandIdeaPool(brand) {
         : `${name} changed that. ${cta}.`,
       caption: `${oneLiner}\n\n${cta}`.trim(),
       cta,
-      ...talkSubjects(
-        'natural environment soft bokeh, open confessional expression, mid-speech',
-        'same setting, heavier frustration, mid-speech',
-        'calmer relieved confidence, leave lower third clean for CTA'
-      ),
+      ...talk,
     },
     {
       pillar: 'demo',
@@ -144,11 +128,34 @@ function buildBrandIdeaPool(brand) {
       body: oneLiner,
       caption: `${oneLiner}\n\n${cta}`.trim(),
       cta,
-      imageSubject: `Demo-ready still for ${name}, ${photo}, vertical-friendly framing`,
+      imageSubject: `Demo-ready vertical still for ${name} · ${icp}, ${cast.environment}, ${photo}`,
       videoMotion: 'Subtle product-in-use motion, commercial pace',
       deliveryMode: brand.defaultDeliveryMode || 'caption_talk',
+      ...brandTalkSubjects(
+        brand,
+        `${cast.environment}, demo energy, mid-speech`,
+        `same setting, deeper problem, mid-speech`,
+        `calmer resolve, phone optional blank screen, clean lower third`
+      ),
     },
   ];
+}
+
+/** Taskiz legacy cast helper (only used inside TASKIZ_IDEA_POOL) */
+function talkSubjects(hookScene, tensionScene, resolveScene) {
+  return brandTalkSubjects(
+    {
+      name: 'Taskiz',
+      category: 'Mobile business app for contractors',
+      icp: { primary: ['Solo handyman businesses', 'Small general contractors'] },
+      photographyStyle:
+        'documentary commercial photography, authentic owner-operator contractor, real job site',
+      imageNegatives: 'no hard-hat cliché, no logos',
+    },
+    hookScene,
+    tensionScene,
+    resolveScene
+  );
 }
 
 /**
@@ -608,10 +615,16 @@ function byPriority(arr) {
 }
 
 function applyStyleFields(item, styleId) {
-  const style = getVideoStyle(styleId);
+  const brand = getBrand();
+  const raw = getVideoStyle(styleId);
+  // Adapt contractor-locked style packs to this brand's ICP
+  const style = brandAdaptStylePack(raw, brand);
   item.styleId = style.id;
   item.styleLabel = style.label;
-  item.styleDirectorBrief = styleDirectorBrief(style.id);
+  item.styleDirectorBrief = [
+    styleDirectorBrief(style.id),
+    `Brand ICP lock: ${(brand.icp?.primary || []).join(', ') || brand.category || brand.name}`,
+  ].join('\n');
   item.styleImageBlock = style.imagePromptBlock;
   item.styleVideoBlock = style.videoPromptBlock;
   item.styleCamera = style.camera;

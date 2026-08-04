@@ -9,6 +9,8 @@ import {
   resetBrandOverrides as resetWorkspaceBrandOverrides,
   loadContentMeta,
 } from './brandLoader.js';
+import { brandIcpPromptLock, brandTalkCharacter, brandAdaptStylePack } from './brandCast.js';
+import { getVideoStyle } from './videoStyles.js';
 
 /** Live brand for the active workspace (AsyncLocalStorage or persisted active). */
 export function getBrand() {
@@ -98,35 +100,41 @@ export const formats = {
  * Brand-safe Grok image prompt.
  * Critical: never ask the model to paint the brand name into the scene.
  * Optional styleId injects a video style pack (camera/lighting/energy).
+ * Always locks to active workspace ICP (not another client’s industry).
  */
 export function buildImagePrompt(idea, { styleId } = {}) {
   const b = getBrand();
   const subject = idea.imageSubject || idea.headline;
   const c = b.colors || {};
   const sid = styleId || idea.styleId || b.defaultVideoStyleId;
+  const style = sid ? brandAdaptStylePack(getVideoStyle(sid), b) : null;
 
-  // Lazy import avoided — style fragments inlined via dynamic require pattern not ideal in ESM.
-  // Callers that have style should pass styleImageBlock; otherwise we use brand photography only.
-  const styleBlock = idea.styleImageBlock || null;
-  const styleNeg = idea.styleNegatives || null;
+  const styleBlock = idea.styleImageBlock || style?.imagePromptBlock || null;
+  const styleNeg = idea.styleNegatives || style?.negatives || null;
+  const subjectRules = idea.styleSubjectRules || style?.subjectRules || null;
 
   const brief = idea.batchBrief || idea.brief || null;
 
   return [
     `Photorealistic marketing photograph (not an illustration, not a graphic design mockup).`,
     `Scene: ${subject}.`,
+    brandIcpPromptLock(b),
     styleBlock
       ? `Video style pack: ${styleBlock}.`
       : `Style: ${b.photographyStyle}.`,
     brief
       ? `Batch casting / direction brief (follow closely for subject identity, setting, energy): ${brief}.`
       : '',
-    idea.styleCamera ? `Camera: ${idea.styleCamera}.` : '',
-    idea.styleLighting ? `Lighting: ${idea.styleLighting}.` : '',
-    idea.styleFraming ? `Framing: ${idea.styleFraming}.` : '',
-    idea.styleSubjectRules ? `Subject rules: ${idea.styleSubjectRules}.` : '',
+    idea.styleCamera || style?.camera ? `Camera: ${idea.styleCamera || style.camera}.` : '',
+    idea.styleLighting || style?.lighting
+      ? `Lighting: ${idea.styleLighting || style.lighting}.`
+      : '',
+    idea.styleFraming || style?.framing
+      ? `Framing: ${idea.styleFraming || style.framing}.`
+      : '',
+    subjectRules ? `Subject rules: ${subjectRules}.` : '',
     `Composition: ${b.compositionNotes}`,
-    `Color grade: ${idea.styleColorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
+    `Color grade: ${idea.styleColorGrade || style?.colorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
     `Aspect: ${formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1'} framing.`,
     `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}.`,
     `Output must be a clean photo plate only — typography and logo will be added later in HyperFrames / design overlay.`,
@@ -141,18 +149,21 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
   if (idea.videoPrompt) return idea.videoPrompt;
 
   const sid = styleId || idea.styleId || b.defaultVideoStyleId;
+  const style = sid ? brandAdaptStylePack(getVideoStyle(sid), b) : null;
   const motion = idea.videoMotion;
-  const styleBlock = idea.styleVideoBlock;
+  const styleBlock = idea.styleVideoBlock || style?.videoPromptBlock || null;
   const dialogue = idea.dialogue || idea.voiceLine || idea.spokenCaption || null;
   const talkFraming =
     idea.deliveryMode === 'diegetic_talk' ||
     idea.deliveryMode === 'caption_talk' ||
     sid === 'contractor_talk' ||
-    sid === 'ultra_ugc';
+    sid === 'ultra_ugc' ||
+    sid === 'documentary_commercial';
   // Native speech costs $ — only when explicitly diegetic + generateAudio
   const wantNativeSpeech =
     idea.deliveryMode === 'diegetic_talk' && idea.generateAudio === true;
 
+  const cast = brandTalkCharacter(b);
   const roleHint =
     beatRole === 'hook'
       ? 'HOOK — emotional confession / pattern interrupt. Viewer must feel seen in 1 second.'
@@ -167,18 +178,19 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
   if (talkFraming && dialogue) {
     return [
       styleBlock ||
-      'Authentic vertical UGC talking-head. Subject faces camera mid-conversation.',
+        `Authentic vertical UGC talking-head. ${cast.character}. Faces camera mid-conversation. ${cast.environment}.`,
+      brandIcpPromptLock(b),
       motion ? `Performance: ${motion}.` : '',
       roleHint,
       brief
-        ? `Casting / performance brief for this batch: ${brief}. Match subject identity and energy.`
-        : '',
+        ? `Casting / performance brief for this batch: ${brief}. Match subject identity and energy to brand ICP only.`
+        : `On-camera person must match ICP: ${cast.icp}.`,
       wantNativeSpeech
         ? `DIALOGUE (speak this line clearly in first person as the on-camera subject): "${dialogue}" Lip sync + native speech audio.`
         : `The subject is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
       'Eye contact with the lens. Peer-to-peer energy — not a radio announcer.',
       'No text, logos, captions, title cards, or UI burned into the video.',
-      `Negatives: ${b.imageNegatives}. No silent staring at phone as the main action.`,
+      `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No silent staring at phone as the main action.`,
     ]
       .filter(Boolean)
       .join(' ');
@@ -187,23 +199,23 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
   if (styleBlock) {
     return [
       styleBlock,
+      brandIcpPromptLock(b),
       motion ? `Beat motion: ${motion}.` : '',
       roleHint,
-      `Negatives: ${b.imageNegatives}. No text, logos, title cards, or UI in the generated video.`,
+      `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No text, logos, title cards, or UI in the generated video.`,
     ]
       .filter(Boolean)
       .join(' ');
   }
 
   return (
-    motion ||
     [
-      'Subtle cinematic motion from this still photograph.',
-      'Slow camera push-in or gentle parallax; natural ambient movement only (fabric, light, dust, leaves).',
+      brandIcpPromptLock(b),
+      motion ||
+        'Subtle cinematic motion from this still photograph. Slow camera push-in or gentle parallax; natural ambient movement only.',
       'Keep people and environment stable and realistic.',
       'No text, no logos, no title cards, no logo morphs, no UI overlays, no sci-fi effects.',
-      'Premium commercial energy, calm and grounded.',
-      `Negatives: ${b.imageNegatives}`,
+      `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}.`,
       sid ? `(style ${sid})` : '',
     ]
       .filter(Boolean)

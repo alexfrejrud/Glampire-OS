@@ -49,3 +49,19 @@ Still ads are **not** freeform AI design. Split responsibilities:
 - After layout changes: **Recompose type** (reuse plate)
 
 Do not ask the image model to paint brand type or logos.
+
+## Multi-workspace story captions (platform rule)
+
+Spoken captions are **workspace-agnostic**. Same pipeline for Taskiz, WEPOC, and every new client.
+
+| Rule | Behavior |
+|---|---|
+| Whisper ASR succeeds | Burn **spoken words** karaoke (always). Never gate on style `titleStyle`. |
+| ASR fails / silent plate | Fall back to **full beat dialogue**, not flow keywords |
+| Never on speech reels | Keyword title cards like “The old way” / “The cost” |
+| Highlight color | Active Brand OS `colors.brand` (e.g. Taskiz purple, WEPOC mint) |
+| Brand OS defaults | `defaultUseAsrCaptions: true`, `defaultDeliveryMode: caption_talk` |
+| Opt-out | Brand or item `useAsrCaptions: false` only |
+
+Code: `storyAssembler` (ASR) → `graphicsCompose.buildStoryGraphics` (burn).  
+Do not reintroduce style packs that skip ASR when `asrKaraokeWindows` is present.

@@ -1104,26 +1104,45 @@ export function buildStoryGraphics({
     );
     const useAsrCaptions = Array.isArray(asrKaraokeWindows) && asrKaraokeWindows.length > 0;
 
-    // Talk styles ALWAYS karaoke word highlight (Outfit, no black pill).
-    // Never fall back to static black-frame captions on contractor / UGC talk.
+    // Spoken-caption preference is workspace-agnostic.
+    // Brand OS / item deliveryMode / ASR success decide — not Taskiz-only style names.
     const titleStyle = style.graphics?.titleStyle || 'word_reveal';
+    const brandDelivery = brand?.defaultDeliveryMode || brand?.deliveryMode || '';
+    // ASR captions are on unless Brand OS explicitly sets defaultUseAsrCaptions: false
+    const brandWantsSpoken =
+        brand?.defaultUseAsrCaptions !== false &&
+        (brandDelivery === 'caption_talk' ||
+            brandDelivery === 'diegetic_talk' ||
+            !brandDelivery ||
+            brandDelivery === 'auto');
     const talkStyle =
         styleId === 'contractor_talk' ||
         styleId === 'ultra_ugc' ||
         style.deliveryMode === 'caption_talk' ||
         style.deliveryMode === 'diegetic_talk' ||
+        brandWantsSpoken ||
         titleStyle === 'word_reveal' ||
         titleStyle === 'dialogue_caption' ||
         titleStyle === 'phrase_per_beat' ||
         style.graphics?.captionStyle === 'karaoke_bottom' ||
+        style.graphics?.captionStyle === 'dialogue_bottom' ||
         style.graphics?.motionText === 'word_highlight';
+    // Default: karaoke / full spoken lines for ALL workspaces when speech is expected.
+    // Keyword title cards (lower_third / bold_hook keywords) only when no ASR and no dialogue.
     const useWordReveal =
         talkStyle ||
         titleStyle === 'word_reveal' ||
         titleStyle === 'dialogue_caption' ||
-        titleStyle === 'phrase_per_beat';
-    // Static full-line is a last-resort fallback only (also no black pill)
-    const useDialogueCaptions = false;
+        titleStyle === 'phrase_per_beat' ||
+        titleStyle === 'hook_then_lower' ||
+        brandWantsSpoken;
+    const useDialogueCaptions =
+        !useWordReveal &&
+        (titleStyle === 'clean_sans' ||
+            titleStyle === 'minimal_caption' ||
+            titleStyle === 'soft_center' ||
+            style.graphics?.captionStyle === 'clean_sans' ||
+            brandWantsSpoken);
 
     // Precompute cut points so every beat owns [cutStart, cutEnd)
     const cutStarts = [];
@@ -1153,21 +1172,27 @@ export function buildStoryGraphics({
         }
     }
 
-    // ── ASR path: exact spoken words (skip script dialogue entirely) ──
-    if (useAsrCaptions && useWordReveal) {
+    // ── ASR path: exact spoken words ALWAYS win when Whisper succeeded ──
+    // Do NOT gate on useWordReveal / style titleStyle. Bug (WEPOC msetz59x): documentary_commercial
+    // had titleStyle=lower_third so ASR karaoke was computed then thrown away for keyword titles
+    // ("The old way" / "The cost") — no real subtitles, nonsense title cards.
+    if (useAsrCaptions) {
         const asrLayers = buildAsrKaraokeLayers({
             workDir,
             asrWindows: asrKaraokeWindows,
-            brandPurple: tokens.brand || '#9563FF',
+            brandPurple: tokens.brand || tokens.brandDeep || '#9563FF',
             role: 'hook',
         });
         layers.push(...asrLayers);
+        console.log(
+            `[graphicsCompose] ASR karaoke burned: ${asrLayers.length} plates (style=${styleId}, titleStyle=${titleStyle})`
+        );
     }
 
     let t = 0;
     for (let i = 0; i < beats.length; i++) {
-        // When ASR karaoke is active, do not also burn script captions (double text / mismatch)
-        if (useAsrCaptions && useWordReveal) {
+        // When ASR karaoke is active, never also burn script keywords / lower-thirds
+        if (useAsrCaptions) {
             t += actualDurations[i] || Number(beats[i].durationSec) || 5;
             continue;
         }
@@ -1188,8 +1213,10 @@ export function buildStoryGraphics({
             (dialogue || '').split(/[.!?]/)[0]?.slice(0, 28) ||
             '';
 
-        // Always have the FULL spoken line for this cut — never skip, never chop words
-        let captionText = useDialogueCaptions || useWordReveal
+        // Prefer FULL spoken dialogue over flow keywords ("The old way") on every workspace.
+        // Keywords only if there is truly no dialogue (silent B-roll).
+        const preferSpoken = useDialogueCaptions || useWordReveal || Boolean(String(dialogue).trim());
+        let captionText = preferSpoken
             ? captionFromDialogue(dialogue || keyword || '', {
                 role: beat.role || 'hook',
                 stripTrailingCta: true,
@@ -1201,12 +1228,11 @@ export function buildStoryGraphics({
                 (beat.role === 'resolve' ? cta || brand.primaryCta || 'Learn more' : '…');
         }
 
-        // Safety: if dialogue somehow shorter than keyword-only, still show something full
+        // Safety: if dialogue is fuller than a keyword stub, always use dialogue
         if (
-            (useDialogueCaptions || useWordReveal) &&
-            captionText.split(/\s+/).length < 3 &&
             dialogue &&
-            String(dialogue).split(/\s+/).length >= 3
+            String(dialogue).split(/\s+/).length >= 3 &&
+            captionText.split(/\s+/).length < 3
         ) {
             captionText = captionFromDialogue(dialogue, {
                 role: beat.role || 'hook',

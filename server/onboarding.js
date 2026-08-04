@@ -21,6 +21,7 @@ import {
     CLIENTS_ROOT,
 } from './brandLoader.js';
 import { runBrandResearch } from './research/orchestrator.js';
+import { buildVisualOsFromOnboarding } from './brandCast.js';
 
 const ONBOARDING_FILE = 'onboarding.json';
 const BRAND_DRAFT = 'brand.draft.json';
@@ -164,16 +165,12 @@ function emptyAnswers(seed = {}) {
         brandkit: {
             brandColor: seed.brandColor || '#111111',
             accentColor: seed.accentColor || '#737373',
-            photographyStyle:
-                seed.photographyStyle ||
-                'documentary commercial photography, authentic subjects, natural light, single clear subject, intentional negative space for text overlay',
-            imageNegatives:
-                seed.imageNegatives ||
-                'no text of any kind, no logos painted in scene, no fake UI gibberish, no stock-photo clichés',
-            compositionNotes:
-                seed.compositionNotes ||
-                'One hero moment, clean negative space for later overlay, medium shot preferred.',
-            notes: seed.visualNotes || '',
+            photographyStyle: seed.photographyStyle || '',
+            imageNegatives: seed.imageNegatives || '',
+            compositionNotes: seed.compositionNotes || '',
+            notes:
+                seed.visualNotes ||
+                'Leave photo style blank to auto-infer from ICP + category at research/compile.',
         },
         channels: {
             platforms: seed.platforms || ['instagram', 'tiktok', 'facebook', 'linkedin'],
@@ -706,6 +703,21 @@ export function compileBrandFromAnswers(state, id, scrape = null) {
     const ctas = deriveCtas(offer, oneLiner);
     const pillars = derivePillars(features, offer, market);
 
+    // Visual OS from onboarding — every new client gets ICP-fit cast/photo/video defaults
+    const visualOs = buildVisualOsFromOnboarding({
+        category: identity.category || '',
+        oneLiner,
+        supporting: (offer.valueProp || '').trim() || oneLiner,
+        promise: (offer.promise || oneLiner).trim(),
+        primaryIcp: primary,
+        secondaryIcp: secondary,
+        keyFeatures: features,
+        photographyStyle: brandkit.photographyStyle || '',
+        imageNegatives: brandkit.imageNegatives || '',
+        compositionNotes: brandkit.compositionNotes || '',
+        communities: linesToList(market.communities),
+    });
+
     const brand = {
         id,
         name,
@@ -735,23 +747,29 @@ export function compileBrandFromAnswers(state, id, scrape = null) {
         },
         icp: { primary, secondary, later },
         doNotSay,
-        photographyStyle: brandkit.photographyStyle || '',
-        imageNegatives: brandkit.imageNegatives || '',
-        compositionNotes: brandkit.compositionNotes || '',
+        // Media system — derived so stills/reels match this client’s world
+        photographyStyle: visualOs.photographyStyle,
+        imageNegatives: visualOs.imageNegatives,
+        compositionNotes: visualOs.compositionNotes,
+        visualWorld: visualOs.visualWorld,
+        castBrief: visualOs.castBrief,
+        environment: visualOs.environment,
+        wardrobe: visualOs.wardrobe,
+        visualNegativesExtra: visualOs.visualNegativesExtra,
         voice: voice.tone || '',
         pricingModel: offer.pricingModel || '',
         keyFeatures: features,
         competitors: linesToList(market.competitors),
         communities: linesToList(market.communities),
-        defaultVideoStyleId: 'documentary_commercial',
-        defaultFlowId: 'pain_to_cta',
+        defaultVideoStyleId: visualOs.defaultVideoStyleId || 'documentary_commercial',
+        defaultFlowId: visualOs.defaultFlowId || 'pain_to_cta',
         defaultVideoModelId: 'grok',
-        defaultDeliveryMode: 'caption_talk',
+        defaultDeliveryMode: visualOs.defaultDeliveryMode || 'caption_talk',
         defaultGenerateAudio: false,
         defaultBrandChrome: 'organic',
         defaultUseAsrCaptions: true,
         onboardingCompiledAt: new Date().toISOString(),
-        scrapeTitle: scrape?.title || null,
+        scrapeTitle: scrape?.title || scrape?.fusion?.oneLiner || null,
     };
 
     const content = {
@@ -871,12 +889,15 @@ Return ONLY valid JSON with shape:
 Rules:
 - Preserve client truth. Do not invent medical/financial claims.
 - Strengthen oneLiner, supporting, promise, doNotSay, photographyStyle, icp.
+- photographyStyle and castBrief MUST describe this brand's real world and ICP (never a different industry).
+- If brand.visualWorld is set, honor it.
 - Pillars: 4–6 with id, label, description.
 - Ad angles: 3–6 concrete hooks in researchCards.adAngles.data.angles (array of strings).
 - Buyer language: quotes/phrases in researchCards.yourBuyer.data.phrases.
 - Keep colors if provided.
 - Use competitor white space when present.
-- Never output markdown fences.`;
+- Never output markdown fences.
+- defaultVideoStyleId: use documentary_commercial unless brand is clearly field-trades.`;
 
     const user = JSON.stringify(
         {
@@ -1145,6 +1166,31 @@ export async function runResearch(id = getActiveWorkspaceId(), { force = false }
                 if (f.adAngles?.length) {
                     compiled.brand.adAngles = f.adAngles;
                 }
+                // Re-stamp visual OS after fusion so ICP/category always drive media
+                const visualOs = buildVisualOsFromOnboarding({
+                    category: compiled.brand.category,
+                    oneLiner: compiled.brand.oneLiner,
+                    supporting: compiled.brand.supporting,
+                    promise: compiled.brand.promise,
+                    primaryIcp: compiled.brand.icp?.primary || [],
+                    secondaryIcp: compiled.brand.icp?.secondary || [],
+                    keyFeatures: compiled.brand.keyFeatures || [],
+                    photographyStyle: compiled.brand.photographyStyle,
+                    imageNegatives: compiled.brand.imageNegatives,
+                    compositionNotes: compiled.brand.compositionNotes,
+                    communities: compiled.brand.communities || [],
+                });
+                Object.assign(compiled.brand, {
+                    visualWorld: visualOs.visualWorld,
+                    castBrief: visualOs.castBrief,
+                    environment: visualOs.environment,
+                    wardrobe: visualOs.wardrobe,
+                    visualNegativesExtra: visualOs.visualNegativesExtra,
+                    photographyStyle: visualOs.photographyStyle,
+                    imageNegatives: visualOs.imageNegatives,
+                    compositionNotes: visualOs.compositionNotes,
+                    defaultVideoStyleId: visualOs.defaultVideoStyleId,
+                });
             }
 
             const enhanced = await grokCompileEnhancement({
@@ -1312,12 +1358,27 @@ export function lockBrandOs(id = getActiveWorkspaceId(), { brandOverrides = null
     };
 }
 
-export function reopenOnboarding(id = getActiveWorkspaceId()) {
-    updateWorkspaceMeta({ status: 'draft', lockedAt: null }, id);
+/**
+ * Unlock Brand OS for edits. Keeps all answers + research; clears lock so
+ * operators can revise wizard steps and re-lock.
+ * @param {string} [id]
+ * @param {{ step?: string }} [opts] — optional step to land on (e.g. 'identity', 'review')
+ */
+export function reopenOnboarding(id = getActiveWorkspaceId(), opts = {}) {
     const state = loadOnboarding(id);
     state.lockedAt = null;
-    state.step = state.step === 'review' ? 'identity' : state.step;
+    // Prefer review if research already ran; otherwise draft identity
+    const researchDone = state.research?.status === 'done';
+    const requested = opts.step && STEP_IDS.includes(opts.step) ? opts.step : null;
+    state.step = requested || (researchDone ? 'review' : state.step || 'identity');
     saveOnboarding(state, id);
+    updateWorkspaceMeta(
+        {
+            status: researchDone ? 'review' : 'draft',
+            lockedAt: null,
+        },
+        id
+    );
     return getOnboardingPublic(id);
 }
 

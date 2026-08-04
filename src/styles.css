@@ -828,6 +828,16 @@
     opacity: 0.9;
   }
 
+  .onboarding-step:hover {
+    opacity: 1;
+    border-color: var(--color-border, light-dark(#e5e5e5, #3a3a3a));
+  }
+
+  .onboarding-step:focus-visible {
+    outline: 2px solid var(--color-text-primary, #fafafa);
+    outline-offset: 2px;
+  }
+
   /* ── Create composer (Auto / Prompt) ── */
   .create-canvas {
     flex: 1 1 auto;

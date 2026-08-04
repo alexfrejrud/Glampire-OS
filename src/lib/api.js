@@ -1,21 +1,41 @@
 import { getWorkspaceId } from './workspace';
 
+/**
+ * @param {string} path
+ * @param {RequestInit & { timeoutMs?: number }} [options]
+ * timeoutMs: default 20s so a wedged API can't freeze workspace switch / bootstrap forever.
+ * Long jobs (batch, video, research) pass a higher timeoutMs.
+ */
 async function req(path, options = {}) {
     const workspaceId = getWorkspaceId();
+    const { timeoutMs = 20000, headers: optHeaders, ...fetchOpts } = options;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    // If caller already passed a signal, abort ours when theirs aborts
+    if (fetchOpts.signal) {
+        if (fetchOpts.signal.aborted) controller.abort();
+        else fetchOpts.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
     let res;
     try {
         res = await fetch(path, {
+            ...fetchOpts,
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 ...(workspaceId ? { 'X-Workspace-Id': workspaceId } : {}),
-                ...(options.headers || {}),
+                ...(optHeaders || {}),
             },
-            ...options,
         });
     } catch (networkErr) {
+        const aborted = networkErr?.name === 'AbortError';
         throw new Error(
-            `API unreachable (${networkErr.message}). Is the server running on :8787? Try npm run dev.`
+            aborted
+                ? `API timed out after ${Math.round(timeoutMs / 1000)}s (${path}). Is the server healthy on :8787?`
+                : `API unreachable (${networkErr.message}). Is the server running on :8787? Try npm run dev.`
         );
+    } finally {
+        clearTimeout(timer);
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -54,11 +74,15 @@ export const api = {
     onboardingStep: (body) =>
         req('/api/onboarding/step', { method: 'POST', body: JSON.stringify(body) }),
     runOnboardingResearch: (body = {}) =>
-        req('/api/onboarding/research', { method: 'POST', body: JSON.stringify(body) }),
+        req('/api/onboarding/research', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 300000,
+        }),
     lockOnboarding: (body = {}) =>
         req('/api/onboarding/lock', { method: 'POST', body: JSON.stringify(body) }),
-    reopenOnboarding: () =>
-        req('/api/onboarding/reopen', { method: 'POST', body: '{}' }),
+    reopenOnboarding: (body = {}) =>
+        req('/api/onboarding/reopen', { method: 'POST', body: JSON.stringify(body) }),
     uploadOnboardingAsset: (body) =>
         req('/api/onboarding/assets', { method: 'POST', body: JSON.stringify(body) }),
     onboardingDrafts: () => req('/api/onboarding/drafts'),
@@ -77,12 +101,14 @@ export const api = {
         req('/api/batch', {
             method: 'POST',
             body: JSON.stringify({ packId, ...options }),
+            timeoutMs: 120000,
         }),
     /** Still posters / banners — ideas + prompts; generate pixels separately */
     imageBatch: (body = {}) =>
         req('/api/batch/images', {
             method: 'POST',
             body: JSON.stringify(body),
+            timeoutMs: 120000,
         }),
     imageBatchOptions: () => req('/api/batch/images/options'),
     /** Brand-locked static ads — plate + copy + template; compose after plate gen */
@@ -90,26 +116,48 @@ export const api = {
         req('/api/batch/ads', {
             method: 'POST',
             body: JSON.stringify(body),
+            timeoutMs: 120000,
         }),
     adBatchOptions: () => req('/api/batch/ads/options'),
     composeAd: (body = {}) =>
         req('/api/ads/compose', {
             method: 'POST',
             body: JSON.stringify(body),
+            timeoutMs: 120000,
         }),
     rematerializeStory: (body) =>
-        req('/api/story/rematerialize', { method: 'POST', body: JSON.stringify(body) }),
+        req('/api/story/rematerialize', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 300000,
+        }),
     assembleStory: (body) =>
-        req('/api/story/assemble', { method: 'POST', body: JSON.stringify(body) }),
+        req('/api/story/assemble', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 300000,
+        }),
     /** Completed story finals on disk — used to re-attach after crash / Bad Gateway */
     listRenders: () => req('/api/renders'),
     generateImage: (body) =>
-        req('/api/generate/image', { method: 'POST', body: JSON.stringify(body) }),
+        req('/api/generate/image', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 180000,
+        }),
     generateCarousel: (body) =>
-        req('/api/generate/carousel', { method: 'POST', body: JSON.stringify(body) }),
+        req('/api/generate/carousel', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 300000,
+        }),
     startVideo: (body) =>
-        req('/api/generate/video', { method: 'POST', body: JSON.stringify(body) }),
-    pollVideo: (requestId) => req(`/api/generate/video/${requestId}`),
+        req('/api/generate/video', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 120000,
+        }),
+    pollVideo: (requestId) => req(`/api/generate/video/${requestId}`, { timeoutMs: 30000 }),
 
     uploadPostMe: () => req('/api/upload-post/me'),
     uploadPostProfiles: () => req('/api/upload-post/profiles'),

@@ -147,7 +147,7 @@ function statusVariant(status) {
     return 'neutral';
 }
 
-function StepRail({ steps, current, completed, score }) {
+function StepRail({ steps, current, completed, score, onSelectStep }) {
     return (
         <VStack gap={3} className="onboarding-step-rail" style={{ minWidth: 200, maxWidth: 240 }}>
             <VStack gap={1}>
@@ -168,6 +168,7 @@ function StepRail({ steps, current, completed, score }) {
                     const isDone = (completed || []).includes(s.id);
                     const meta = STEP_META[s.id] || {};
                     const Icon = meta.icon || Sparkles;
+                    const clickable = typeof onSelectStep === 'function';
                     return (
                         <HStack
                             key={s.id}
@@ -181,6 +182,19 @@ function StepRail({ steps, current, completed, score }) {
                                       ? 'onboarding-step is-done'
                                       : 'onboarding-step'
                             }
+                            style={clickable ? { cursor: 'pointer' } : undefined}
+                            onClick={() => {
+                                if (clickable) onSelectStep(s.id);
+                            }}
+                            role={clickable ? 'button' : undefined}
+                            tabIndex={clickable ? 0 : undefined}
+                            onKeyDown={(e) => {
+                                if (!clickable) return;
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onSelectStep(s.id);
+                                }
+                            }}
                         >
                             <StatusDot
                                 variant={isDone ? 'success' : isCurrent ? 'accent' : 'neutral'}
@@ -356,17 +370,74 @@ function ResearchMap({ research, onRefresh, refreshing }) {
     );
 }
 
-function ReviewPanel({ onboarding }) {
+function ReviewPanel({ onboarding, onJumpStep, onRerunResearch, researchBusy }) {
     const preview = onboarding?.draftPreview;
     const brand = preview;
     const blocks = onboarding?.completeness?.blocks || {};
+    const conf = onboarding?.research?.confidence;
     return (
         <VStack gap={4}>
             <Banner
                 status="info"
                 title="Lock Brand OS before generating packs"
-                description="Review the compiled brain. After lock, every pack, still, and reel uses this client’s rules — no freeform re-prompting."
+                description="Review the compiled brain. After lock, every pack, still, and reel uses this client’s rules — no freeform re-prompting. You can re-open Brand OS anytime from Settings."
             />
+            <HStack gap={2} wrap="wrap">
+                <Button
+                    label="Edit identity"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('identity')}
+                />
+                <Button
+                    label="Edit offer"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('offer')}
+                />
+                <Button
+                    label="Edit ICP"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('icp')}
+                />
+                <Button
+                    label="Edit market"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('market')}
+                />
+                <Button
+                    label="Edit voice"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('voice')}
+                />
+                <Button
+                    label="Edit brand kit"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('brandkit')}
+                />
+                <Button
+                    label="View research map"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onJumpStep?.('research')}
+                />
+                <Button
+                    label={researchBusy ? 'Re-running…' : 'Re-run research'}
+                    variant="ghost"
+                    size="sm"
+                    isDisabled={researchBusy}
+                    onClick={onRerunResearch}
+                />
+            </HStack>
+            {conf != null && conf > 0 ? (
+                <Text type="supporting" size="sm" color="secondary">
+                    Research confidence: {conf}%
+                </Text>
+            ) : null}
             {!brand ? (
                 <EmptyState
                     title="No draft yet"
@@ -1188,10 +1259,35 @@ export function OnboardingWizard({
         }
 
         if (step === 'review') {
-            return <ReviewPanel onboarding={onboarding} />;
+            return (
+                <ReviewPanel
+                    onboarding={onboarding}
+                    onJumpStep={(id) => setStep(id)}
+                    onRerunResearch={rerunResearch}
+                    researchBusy={busy === 'research'}
+                />
+            );
         }
 
         return null;
+    }
+
+    async function jumpToStep(stepId) {
+        if (!stepId || stepId === step) return;
+        // Persist current form answers before leaving a data step
+        try {
+            if (step !== 'research' && step !== 'review' && createdId) {
+                await persistCurrent({ complete: false });
+            }
+        } catch {
+            /* still allow jump */
+        }
+        setStep(stepId);
+        try {
+            if (createdId) await api.onboardingStep({ stepId, complete: false });
+        } catch {
+            /* local step is enough */
+        }
     }
 
     return (
@@ -1208,8 +1304,14 @@ export function OnboardingWizard({
                 height="fill"
                 header={
                     <DialogHeader
-                        title={mode === 'create' ? 'New workspace · Brand OS' : 'Complete Brand OS onboarding'}
-                        subtitle="Capture vision and brand rules so every creative is client-true."
+                        title={
+                            mode === 'create'
+                                ? 'New workspace · Brand OS'
+                                : onboarding?.lockedAt || onboarding?.status === 'ready'
+                                  ? 'Edit Brand OS'
+                                  : 'Brand OS onboarding'
+                        }
+                        subtitle="Capture vision and brand rules so every creative is client-true. Re-open anytime from Settings."
                         onOpenChange={(isOpen) => {
                             if (!isOpen) onClose?.();
                         }}
@@ -1241,6 +1343,7 @@ export function OnboardingWizard({
                                     current={step}
                                     completed={onboarding?.stepsCompleted}
                                     score={score}
+                                    onSelectStep={jumpToStep}
                                 />
                                 <VStack
                                     gap={4}

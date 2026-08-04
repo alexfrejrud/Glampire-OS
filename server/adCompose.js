@@ -21,6 +21,7 @@ import {
   cleanSupport,
   charsPerLine,
 } from './adLayout.js';
+import { scrubAdDashes } from './adCopy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FONT_DIR = path.join(__dirname, 'assets', 'fonts');
@@ -288,12 +289,17 @@ function buildSvg({ w, h, aspectId, templateId, plateDataUri, copy, brand, logoU
   const brandMid = colors.brand || brandDeep;
   const accent = colors.accent || brandMid;
 
-  const headline = String(copy.headline || copy.shortHeadline || '').trim();
-  const support = cleanSupport(copy.support || copy.body, headline, {
-    maxLen: 56,
-    dedupe: t.dedupeSupport,
-  });
-  const cta = String(copy.cta || t.primaryCta || 'Learn more').trim();
+  // Final dash scrub here so queue/recompose/manual copy never paints "—" on ads
+  const headline = scrubAdDashes(copy.headline || copy.shortHeadline || '');
+  const support = cleanSupport(
+    scrubAdDashes(copy.support || copy.body || ''),
+    headline,
+    {
+      maxLen: 56,
+      dedupe: t.dedupeSupport,
+    }
+  );
+  const cta = scrubAdDashes(copy.cta || t.primaryCta || 'Learn more');
   const site = String(copy.website || t.website || '')
     .replace(/^https?:\/\//, '')
     .replace(/\/$/, '');

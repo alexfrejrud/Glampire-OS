@@ -83,7 +83,8 @@ All type and major spacing = **fraction of \(S\)** (implemented in `server/adLay
 **Line-height:** headline ~1.18–1.22; body ~1.35.  
 **Support:** max 1 line; drop if it repeats the headline (dedupe).  
 **Wrap:** use ~0.5em average char width (Outfit-class sans); auto-shrink headline slightly before ellipsis.  
-**Copy:** Brand OS `adSupport` / short `supporting` preferred; never use `promise` when it restates `oneLiner`.
+**Copy:** Brand OS `adSupport` / short `supporting` preferred; never use `promise` when it restates `oneLiner`.  
+**No dashes on stills:** never paint em dash (—), en dash (–), or spaced ` - ` pauses. `scrubAdDashes()` in `adCopy` + final pass in `adCompose`. Mid-word hyphens (real-time) OK.
 
 ---
 

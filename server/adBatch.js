@@ -4,13 +4,17 @@
  */
 
 import { getBrand } from './brand.js';
-import { IMAGE_ASPECTS, IMAGE_MOODS, generateImageBatch } from './imageBatch.js';
+import {
+  IMAGE_ASPECTS,
+  IMAGE_MOODS,
+  generateImageBatch,
+  brandNativeCampaignBrief,
+} from './imageBatch.js';
 import { buildAdCopy, listAdCopyOptions, AD_ANGLES, AD_OBJECTIVES } from './adCopy.js';
 import { listAdTemplates, pickAdTemplateId, AD_ASPECT_PX } from './adCompose.js';
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-/** Prefer ad-friendly aspects */
 /**
  * Ad canvas sizes. Plate gen maps unsupported Grok ratios (e.g. 4:5 → 3:4)
  * then compose still exports at the design aspect (cover-crop).
@@ -30,16 +34,6 @@ export const AD_COUNTS = [
   { id: '8', label: '8 ads', short: '8', description: 'Solid batch', ico: '8' },
 ];
 
-/** Default campaign scenes when operator leaves brief empty — brand-agnostic */
-const DEFAULT_CAMPAIGNS = {
-  pain: 'authentic person mid-friction with an old broken workflow, natural light, documentary commercial',
-  field: 'authentic person in a real work context using a phone as a tool, natural light',
-  outcome: 'authentic person in a calm after-success moment, clean composition, natural light',
-  one_app: 'authentic person with one clear tool replacing a messy setup, lifestyle commercial',
-  beta: 'authentic person inviting a peer to try something better, warm candid energy',
-  auto: 'authentic documentary commercial subject in a real-world brand-relevant moment',
-};
-
 function pickAspect(id) {
   return AD_ASPECTS.find((a) => a.id === id) || IMAGE_ASPECTS.find((a) => a.id === id) || AD_ASPECTS[0];
 }
@@ -47,6 +41,7 @@ function pickAspect(id) {
 /**
  * Build N finished-ad queue items (plate prompt + copy + template).
  * Pixels: client generates plate then POST /api/ads/compose.
+ * Plates always follow active workspace Brand OS (ICP, category, photo style).
  */
 export function generateAdBatch(options = {}) {
   const brand = getBrand();
@@ -61,17 +56,17 @@ export function generateAdBatch(options = {}) {
 
   let campaign = String(options.prompt || options.batchBrief || options.campaign || '').trim();
   if (!campaign) {
-    const key = angleId === 'auto' ? 'auto' : angleId;
-    campaign = DEFAULT_CAMPAIGNS[key] || DEFAULT_CAMPAIGNS.auto;
+    campaign = brandNativeCampaignBrief(angleId);
   }
 
-  // Reuse image plate factory for diversify / cast / photography rules
+  // Reuse image plate factory — Brand OS locks cast/settings via getBrand()
   const plateBatch = generateImageBatch({
     prompt: campaign,
     aspectRatio: aspect.id,
     count,
     diversify,
     moodId,
+    angleId,
   });
 
   const items = plateBatch.items.map((plateItem, i) => {
@@ -143,6 +138,8 @@ export function generateAdBatch(options = {}) {
     packLabel: `Ads · ${aspect.short}`,
     generatedAt: new Date().toISOString(),
     brandNote: brand.oneLiner,
+    brandId: brand.id || brand.name,
+    brandName: brand.name,
     batchBrief: campaign,
     batchMode: 'ads',
     aspectRatio: aspect.id,

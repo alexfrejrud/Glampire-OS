@@ -1,7 +1,11 @@
 /**
  * Story flow recipes — multi-beat structures for reels.
  * Each flow defines beat roles + default durations + default style affinity.
+ * Dialogue + cast defaults pull from active Brand OS (never hardcode Taskiz).
  */
+
+import { getBrand } from './brandLoader.js';
+import { brandDefaultBeatSubjects, brandTalkCharacter } from './brandCast.js';
 
 export const FLOWS = {
     single_moment: {
@@ -250,41 +254,43 @@ function roleDefaults(role) {
 }
 
 /**
- * Expand a reel idea into concrete beats with first-person contractor dialogue.
- *
- * Preferred fields:
- *   dialogueHook / dialogueTension / dialogueResolve — what THEY say on camera
- *   hookKeyword / tensionKeyword / resolveKeyword    — 2–4 word face-safe overlays
- *   voiceHook… — legacy aliases for dialogue
+ * Expand a reel idea into concrete beats with first-person peer dialogue.
+ * Defaults are Brand OS–aware (ICP + brand name) — Taskiz only if that workspace is active
+ * and the idea still carries Taskiz-specific dialogue.
  */
 export function expandBeats(idea, { flowId, styleId } = {}) {
+    const brand = getBrand();
     const flow = getFlow(flowId || inferFlowId(idea));
-    const style = styleId || idea.styleId || flow.defaultStyleId;
+    const style = styleId || idea.styleId || flow.defaultStyleId || brand.defaultVideoStyleId;
 
     const seedBeats = Array.isArray(idea.beats) && idea.beats.length ? idea.beats : null;
+    const cta = idea.cta || brand.primaryCta || brand.ctas?.[0] || 'Learn more';
+    const name = brand.name || 'this';
+    const one = brand.oneLiner || brand.promise || '';
+    const icp = (brand.icp?.primary || [])[0] || 'people like me';
 
-    // First-person monologue (contractor speaking as themselves)
+    // First-person monologue — brand-native fallbacks (not Taskiz)
     const dialogueHook =
         idea.dialogueHook ||
         idea.voiceHook ||
         idea.hookLine ||
-        "I used to lose half my customers in my texts. I'm not proud of it.";
+        `I kept doing it the hard way. ${icp ? `As ${icp.toLowerCase()}, ` : ''}it was messy.`;
     const dialogueTension =
         idea.dialogueTension ||
         idea.voiceTension ||
         idea.tensionLine ||
-        "I'd finish a job… then sit at the kitchen table at midnight still chasing invoices.";
+        "I was losing time and opportunities I couldn't get back.";
     const dialogueResolve =
         idea.dialogueResolve ||
         idea.voiceResolve ||
         idea.resolveLine ||
-        `Now customers, jobs, invoices — one phone. Taskiz. ${idea.cta || 'Join the Beta'}.`;
+        (one ? `${one} ${cta}.` : `${name} changed that for me. ${cta}.`);
 
-    const hookKeyword = idea.hookKeyword || shortKeyword(dialogueHook, 'Lost in texts');
+    const hookKeyword = idea.hookKeyword || shortKeyword(dialogueHook, 'The old way');
     const tensionKeyword =
-        idea.tensionKeyword || shortKeyword(dialogueTension, 'Midnight invoices');
+        idea.tensionKeyword || shortKeyword(dialogueTension, 'The cost');
     const resolveKeyword =
-        idea.resolveKeyword || shortKeyword(dialogueResolve, 'One phone');
+        idea.resolveKeyword || shortKeyword(dialogueResolve, name.slice(0, 20) || 'Better path');
 
     const hookLine = socialTitle(idea.hookLine || hookKeyword, { maxLen: 36, role: 'hook' });
     const tensionLine = socialTitle(idea.tensionLine || tensionKeyword, {
@@ -312,16 +318,17 @@ export function expandBeats(idea, { flowId, styleId } = {}) {
         hookLine,
         tensionLine,
         resolveLine,
-        cta: idea.cta || 'Join the Beta',
+        cta,
     };
 
     // caption_talk = cheap (Grok + keywords). diegetic_talk = native speech $ (opt-in)
     const deliveryMode =
         idea.deliveryMode ||
         flow.deliveryMode ||
+        brand.defaultDeliveryMode ||
         'caption_talk';
 
-    const defaultSubjects = defaultSubjectsForIdea(idea, deliveryMode);
+    const defaultSubjects = defaultSubjectsForIdea(idea, deliveryMode, brand);
 
     const beats = flow.beats.map((tpl, idx) => {
         const seeded = seedBeats?.[idx] || {};
@@ -394,25 +401,6 @@ function shortKeyword(dialogue, fallback) {
     return words.slice(0, 4).join(' ').replace(/[,;:]+$/, '');
 }
 
-function defaultSubjectsForIdea(idea, deliveryMode = 'caption_talk') {
-    if (deliveryMode === 'diegetic_talk' || deliveryMode === 'caption_talk') {
-        const base =
-            idea.imageSubject ||
-            'vertical 9:16 selfie of authentic solo handyman 40s looking at camera mid-conversation, work clothes, residential job site soft background';
-        return [
-            base,
-            idea.tensionSubject ||
-            'Same contractor as previous beat, same wardrobe, talking to camera with heavier frustrated emotion, job site or van, face readable',
-            idea.resolveSubject ||
-            'Same contractor, same wardrobe, talking to camera with calmer relieved confidence, slight hope, face readable',
-        ];
-    }
-    const base = idea.imageSubject || 'solo contractor on a residential job site with phone';
-    return [
-        base,
-        idea.tensionSubject ||
-        `Same world as: ${base} — tighter on admin friction, still photoreal`,
-        idea.resolveSubject ||
-        `Same world as: ${base} — calmer resolve, room for CTA`,
-    ];
+function defaultSubjectsForIdea(idea, deliveryMode = 'caption_talk', brand = getBrand()) {
+    return brandDefaultBeatSubjects(brand, idea, deliveryMode);
 }

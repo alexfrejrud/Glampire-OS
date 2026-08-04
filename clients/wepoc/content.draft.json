@@ -1,0 +1,85 @@
+{
+  "pillars": [
+    {
+      "id": "pain",
+      "label": "Pain",
+      "description": "Core friction independent artists feel navigating the industry alone"
+    },
+    {
+      "id": "demo",
+      "label": "Product demo",
+      "description": "How the app delivers education, Virtual A&R guidance, and real connections"
+    },
+    {
+      "id": "before_after",
+      "label": "Before / after",
+      "description": "Scattered advice and cold outreach vs focused guidance and warm intros"
+    },
+    {
+      "id": "education",
+      "label": "Education",
+      "description": "Practical music business tips creators actually need"
+    },
+    {
+      "id": "trust",
+      "label": "Trust & proof",
+      "description": "Real member outcomes and transparent community built by industry pros"
+    },
+    {
+      "id": "offer",
+      "label": "Offer clarity",
+      "description": "Simple $29.99/year membership with no hidden fees"
+    }
+  ],
+  "formats": [
+    {
+      "id": "post",
+      "label": "Post",
+      "aspectRatio": "1:1",
+      "size": "1080×1080",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "linkedin"
+      ],
+      "description": "Single-image feed post"
+    },
+    {
+      "id": "carousel",
+      "label": "Carousel",
+      "aspectRatio": "1:1",
+      "size": "1080×1080",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "linkedin"
+      ],
+      "description": "3–6 slide story sequence"
+    },
+    {
+      "id": "reel",
+      "label": "Reel",
+      "aspectRatio": "9:16",
+      "size": "1080×1920",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "tiktok",
+        "youtube"
+      ],
+      "description": "Vertical short video"
+    }
+  ],
+  "packIds": [
+    "weekly",
+    "reels",
+    "carousels"
+  ],
+  "ideaSource": "content.json",
+  "ideas": [],
+  "storyDefaults": {
+    "flowId": "pain_to_cta",
+    "styleId": "documentary_commercial",
+    "videoModelId": "grok"
+  }
+}

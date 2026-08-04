@@ -171,6 +171,7 @@ export async function runBrandResearch(ctx) {
         offer,
         market,
         confidence,
+        allSources: sources,
     });
 
     const bundle = {
@@ -340,6 +341,7 @@ function buildResearchCards({
     offer,
     market,
     confidence,
+    allSources = [],
 }) {
     const name = identity.name || 'Brand';
     return {
@@ -491,7 +493,7 @@ function buildResearchCards({
             status: 'done',
             summary: `Overall confidence ${confidence}% · ${(site.pageCount || 0)} site pages · ${competitors.count || 0} competitors · ${phrases.count || 0} phrases`,
             confidence,
-            sources,
+            sources: allSources,
             data: {
                 confidence,
                 sitePages: site.pageCount || 0,
@@ -499,7 +501,7 @@ function buildResearchCards({
                 phrases: phrases.count || 0,
                 social: social.count || 0,
                 documents: documents.count || 0,
-                sources,
+                sources: allSources,
             },
             updatedAt: new Date().toISOString(),
         },
