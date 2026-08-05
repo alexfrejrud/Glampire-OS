@@ -229,7 +229,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                 wardrobe: 'olive oversized hoodie, silver chains, no logos',
                 environment:
                     'daylit bedroom creative corner, corkboard with photos, keyboard soft in background, plants',
-                framing: 'medium close-up, slight selfie angle, face fills upper half',
+                framing:
+                    'VERTICAL phone selfie MCU: face fills upper half of frame, full head in frame, chest-up, lower third clean',
                 light: 'bright window side light, soft shadows',
             },
             {
@@ -238,7 +239,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                 wardrobe: 'black tee, thin chain, no logos',
                 environment:
                     'night desk with soft warm lamp, open notebook, MIDI keyboard, laptop with unreadable screen',
-                framing: 'medium shot from desk height looking slightly up to camera',
+                framing:
+                    'VERTICAL MCU from slightly below: face large in frame, full head visible, desk only a thin edge at bottom not half the frame',
                 light: 'warm practical lamp, cool room falloff',
             },
             {
@@ -246,7 +248,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a South Asian woman late 20s, glasses optional, confident creative, natural skin texture',
                 wardrobe: 'cream knit sweater, headphones around neck, no logos',
                 environment: 'sunlit writing desk by a window, city soft bokeh, coffee, lyric notebook',
-                framing: 'medium close-up three-quarter turn then eyes to lens',
+                framing:
+                    'VERTICAL MCU three-quarter then eyes to lens, face fills upper half, full head in frame',
                 light: 'golden hour window light',
             },
             {
@@ -255,7 +258,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                 wardrobe: 'charcoal hoodie, no logos',
                 environment:
                     'home studio with dual monitors soft bokeh (screens blank/unreadable), foam panels soft, cable clutter realistic',
-                framing: 'medium close-up, locked-off documentary, face readable',
+                framing:
+                    'VERTICAL documentary MCU: face large, full head in frame, room soft bokeh behind, not a wide studio establish',
                 light: 'cool monitor spill + soft key from left',
             },
             {
@@ -263,7 +267,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a mixed-race non-binary creator mid-20s, short textured hair, candid UGC energy, natural skin',
                 wardrobe: 'oversized washed shirt, no logos',
                 environment: 'apartment with big window, plant wall, city afternoon light',
-                framing: 'slightly wider medium shot showing hands + desk edge, then face is hero',
+                framing:
+                    'VERTICAL MCU: face is hero fills upper half, maybe one hand edge, no wide room shot',
                 light: 'soft overcast daylight',
             },
             {
@@ -271,7 +276,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a Black woman early 30s singer-songwriter energy, natural hair in a wrap or twists, warm peer vibe',
                 wardrobe: 'leather jacket over tee, no logos',
                 environment: 'intimate living room corner, string lights soft, acoustic guitar soft out of focus',
-                framing: 'tight medium close-up, eye contact, emotional',
+                framing:
+                    'VERTICAL MCU: full head in frame, eye contact, emotional, face fills upper half',
                 light: 'soft rim light + warm practical',
             },
             {
@@ -279,7 +285,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'an East Asian man late 20s beatmaker energy, soft cap optional, focused but friendly, natural skin',
                 wardrobe: 'graphic-free hoodie, no logos',
                 environment: 'compact bedroom studio, controllers, posters soft out of focus (no readable text)',
-                framing: 'over-desk angle then subject looks up to camera',
+                framing:
+                    'VERTICAL MCU looking up to camera: face large in frame, not over-desk wide shot',
                 light: 'night blue ambient + desk lamp',
             },
             {
@@ -287,7 +294,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a white woman mid-20s freckles songwriter energy, messy bun, real not model-polish, natural skin',
                 wardrobe: 'muted thrift jacket, no logos',
                 environment: 'kitchen table creative session, papers, iced coffee, daytime',
-                framing: 'medium close-up handheld feel, slight off-center',
+                framing:
+                    'VERTICAL handheld MCU: face fills upper half, full head in frame, slight off-center ok',
                 light: 'hard-ish window daylight, realistic',
             },
             {
@@ -295,7 +303,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a Black man early 20s emerging artist energy, cornrows or twists, youthful peer UGC, natural skin',
                 wardrobe: 'sports jersey without readable marks or plain tee, no logos',
                 environment: 'car interior parked after a session, late afternoon, city soft outside',
-                framing: 'selfie-style medium close-up from phone height',
+                framing:
+                    'VERTICAL selfie MCU from phone height: face large, full head in frame',
                 light: 'golden late-day car interior',
             },
             {
@@ -303,7 +312,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a Latina woman mid-20s producer/songwriter hybrid, long dark hair, candid energy, natural skin',
                 wardrobe: 'cropped hoodie or crewneck, no logos',
                 environment: 'shared creative loft, sofa and monitors soft, daylight',
-                framing: 'medium shot sitting on floor or sofa edge talking to camera',
+                framing:
+                    'VERTICAL MCU sitting: face fills upper half talking to camera, not wide loft establish',
                 light: 'bright even daylight',
             },
             {
@@ -311,7 +321,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a Middle Eastern man early 30s songwriter energy, short beard, sincere peer presence, natural skin',
                 wardrobe: 'linen shirt casual, no logos',
                 environment: 'balcony or fire-escape adjacent apartment, city soft, notebook in hand',
-                framing: 'medium close-up, outdoor adjacent, wind soft in hair',
+                framing:
+                    'VERTICAL MCU outdoor-adjacent: face large, full head in frame, wind soft in hair',
                 light: 'overcast soft sky',
             },
             {
@@ -319,7 +330,8 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                     'a Black woman late 20s A&R-curious creative, sleek ponytail or braids, smart casual peer energy',
                 wardrobe: 'blazer over tee, no logos',
                 environment: 'clean café table, laptop closed, phone face-down, soft public interior',
-                framing: 'medium close-up across table to camera',
+                framing:
+                    'VERTICAL MCU across table: face fills upper half, full head in frame, table only thin edge',
                 light: 'café practicals, soft',
             },
         ],
@@ -328,28 +340,29 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                 character: 'a Latino man mid-40s owner-operator energy, weathered hands, natural skin',
                 wardrobe: 'work flannel, dusty OK, no logos',
                 environment: 'truck cab between jobs, tools soft behind',
-                framing: 'medium close-up in cab, daylight',
+                framing: 'VERTICAL MCU in cab: face large, full head in frame, daylight',
                 light: 'late afternoon cab light',
             },
             {
                 character: 'a white man early 50s solo contractor, salt-and-pepper, practical face',
                 wardrobe: 'plain work tee, no logos',
                 environment: 'residential driveway job pause, house soft behind',
-                framing: 'medium shot standing, phone as tool optional',
+                framing:
+                    'VERTICAL MCU standing: chest-up face fills upper half, not full-body wide shot',
                 light: 'overcast outdoor',
             },
             {
                 character: 'a Black man mid-30s handyman energy, short beard, peer presence',
                 wardrobe: 'hoodie over workwear, no logos',
                 environment: 'van interior, shelves soft, natural clutter',
-                framing: 'medium close-up sitting in van doorway',
+                framing: 'VERTICAL MCU in van doorway: face large, full head in frame',
                 light: 'open door daylight',
             },
             {
                 character: 'a woman mid-40s trades owner energy, practical ponytail, natural skin',
                 wardrobe: 'work jacket, no logos',
                 environment: 'kitchen remodel in progress soft background',
-                framing: 'medium close-up, confident address',
+                framing: 'VERTICAL MCU confident address: face fills upper half',
                 light: 'site work lights soft',
             },
         ],
@@ -358,14 +371,15 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
                 character: 'a woman late 20s product person energy, natural skin, peer not corporate',
                 wardrobe: 'smart casual sweater, no logos',
                 environment: 'home office window light, laptop soft unreadable',
-                framing: 'medium close-up at desk',
+                framing:
+                    'VERTICAL MCU at desk: face fills upper half, laptop only soft edge, not wide office establish',
                 light: 'window key soft',
             },
             {
                 character: 'a man early 30s founder energy, stubble, candid',
                 wardrobe: 'oxford shirt sleeves rolled, no logos',
                 environment: 'café laptop closed, talking to camera',
-                framing: 'medium close-up across table',
+                framing: 'VERTICAL MCU across table: face large, full head in frame',
                 light: 'café ambient',
             },
         ],
@@ -386,12 +400,17 @@ export function brandCastVariant(brand = getBrand(), index = 0) {
         character,
         wardrobe: pick.wardrobe || base.wardrobe,
         environment: pick.environment || base.environment,
-        framing: pick.framing || 'medium close-up, face readable, leave lower third clean',
+        framing:
+            pick.framing ||
+            'VERTICAL MCU: face fills upper half of 9:16 frame, full head in frame (forehead+chin), chest-up, lower third clean, not a wide room shot',
         light: pick.light || 'natural documentary light',
         variantIndex: i % bank.length,
         castId: `${world.id}-cast-${(i % bank.length) + 1}`,
     };
 }
+
+const VERTICAL_FRAME =
+    'strict vertical 9:16 phone portrait ONLY (taller than wide), TALKING-HEAD medium close-up: face fills ~40-55% of frame height, subject large and centered, FULL head visible (forehead+chin+hair inside frame), eyes in upper third, shoulders in frame, lower third clean/empty for captions, background soft bokeh — NEVER wide establishing shot, NEVER tiny person far away, NEVER desk/table filling half the frame, NEVER landscape orientation';
 
 /** Vertical talk subjects for hook/tension/resolve (optional cast override for batch diversity) */
 export function brandTalkSubjects(brand, hookScene, tensionScene, resolveScene, castOverride = null) {
@@ -399,7 +418,7 @@ export function brandTalkSubjects(brand, hookScene, tensionScene, resolveScene, 
     const character = cast.character;
     const environment = cast.environment;
     const wardrobe = cast.wardrobe || '';
-    const framing = cast.framing || 'medium close-up';
+    const framing = cast.framing || 'medium close-up, full head in frame';
     const light = cast.light || 'natural light';
 
     const hook =
@@ -413,9 +432,9 @@ export function brandTalkSubjects(brand, hookScene, tensionScene, resolveScene, 
         `same person same wardrobe continuity, calmer relieved confidence, leave lower third clean for CTA, ${environment}`;
 
     return {
-        imageSubject: `Vertical 9:16 of ${character}, ${framing}, looking at camera mid-conversation, ${hook}`,
-        tensionSubject: `Vertical 9:16 of ${character}, ${framing}, same wardrobe same face continuity, looking at camera, ${tension}`,
-        resolveSubject: `Vertical 9:16 of ${character}, ${framing}, same wardrobe same face continuity, looking at camera, ${resolve}`,
+        imageSubject: `${VERTICAL_FRAME} of ${character}, ${framing}, looking at camera mid-conversation, ${hook}`,
+        tensionSubject: `${VERTICAL_FRAME} of ${character}, ${framing}, same wardrobe same face continuity, looking at camera, ${tension}`,
+        resolveSubject: `${VERTICAL_FRAME} of ${character}, ${framing}, same wardrobe same face continuity, looking at camera, ${resolve}`,
         castId: cast.castId || null,
         castVariantIndex: cast.variantIndex ?? null,
     };
@@ -432,7 +451,7 @@ export function brandDefaultBeatSubjects(brand, idea = {}, deliveryMode = 'capti
     const cast = brandCastVariant(brand, castIndex);
     const base =
         idea.imageSubject ||
-        `vertical 9:16 ${cast.framing || 'selfie'} of ${cast.character}, looking at camera mid-conversation, ${cast.environment}, ${cast.wardrobe}, face readable`;
+        `strict vertical 9:16 phone portrait, ${cast.framing || 'selfie medium close-up'}, full head in frame no crop, of ${cast.character}, looking at camera mid-conversation, ${cast.environment}, ${cast.wardrobe}, face readable, eyes upper third, lower third clean`;
 
     if (deliveryMode === 'diegetic_talk' || deliveryMode === 'caption_talk') {
         return [

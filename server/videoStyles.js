@@ -8,7 +8,7 @@
  *  - optional recommendedVideoModelId (suggestion only — never forced)
  *
  * Quality is a *lane* you pick per pack — not a global studio lock.
- * Taskiz tip: ultra_ugc + Kling for paid/Meta realism; documentary + Grok for weekly volume.
+ * Tip (any workspace): ultra_ugc + Kling for paid/Meta realism; documentary + Grok for weekly volume.
  */
 
 import {
@@ -19,14 +19,14 @@ import {
 } from './creativeFormulas.js';
 
 /**
- * Taskiz quality lanes — guidance only (UI / operator playbook).
- * Does not force Creative Studio into one look.
+ * Platform quality lanes — guidance only (UI / operator playbook).
+ * ICP-specific packs (e.g. contractor_talk) still exist; cast/copy come from Brand OS.
  */
 export const QUALITY_LANES = {
     contractor_testimonial: {
         id: 'contractor_testimonial',
-        label: 'Contractor talks (sell + emotion)',
-        when: 'Meta/TikTok ads that convert — real contractor speaks TO camera, native speech, sell Taskiz with feeling',
+        label: 'Peer talks (sell + emotion)',
+        when: 'Meta/TikTok ads that convert — real peer speaks TO camera, native speech, sell with feeling',
         styleId: 'contractor_talk',
         videoModelId: 'kling',
         altVideoModelId: 'minimax_h3',
@@ -37,7 +37,7 @@ export const QUALITY_LANES = {
     ultra_real_ugc: {
         id: 'ultra_real_ugc',
         label: 'Ultra-real UGC',
-        when: 'Paid social, TikTok/Reels, pain hooks, “feels like a real contractor phone”',
+        when: 'Paid social, TikTok/Reels, pain hooks, “feels like a real phone video”',
         styleId: 'ultra_ugc',
         videoModelId: 'kling',
         altVideoModelId: 'seedance_25',
@@ -57,7 +57,7 @@ export const QUALITY_LANES = {
     product_hero: {
         id: 'product_hero',
         label: 'Product / phone hero',
-        when: 'Demo, estimate/invoice moments, launch creatives',
+        when: 'Demo moments, launch creatives, product-in-hand',
         styleId: 'premium_product',
         videoModelId: 'seedance_25',
         altVideoModelId: 'minimax_h3',
@@ -66,7 +66,7 @@ export const QUALITY_LANES = {
     },
     soft_trust: {
         id: 'soft_trust',
-        label: 'Soft trust / beta invite',
+        label: 'Soft trust / invite',
         when: 'Founder notes, beta invites, LinkedIn-friendly',
         styleId: 'soft_founder',
         videoModelId: 'grok',
@@ -86,7 +86,7 @@ export const VIDEO_STYLES = {
         id: 'contractor_talk',
         label: 'Contractor talks',
         description:
-            'Testimonial UGC: same contractor talks to camera beat-by-beat. Sells Taskiz with real emotion — not B-roll + VO.',
+            'Testimonial UGC: same peer talks to camera beat-by-beat. Sells with real emotion — not B-roll + VO. Cast/copy from Brand OS.',
         bestFor: ['pain', 'trust', 'reels', 'paid', 'education'],
         recommendedVideoModelId: 'kling',
         qualityLane: 'contractor_testimonial',

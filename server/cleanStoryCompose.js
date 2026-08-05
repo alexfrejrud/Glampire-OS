@@ -92,7 +92,7 @@ function wrapText(text, maxChars = 28) {
     return lines.length ? lines : [''];
 }
 
-function captionSvg(text, { brandPurple = '#9563FF' } = {}) {
+function captionSvg(text, { brandPurple = '#5B5BD6' } = {}) {
     const lines = wrapText(
         String(text || '')
             .replace(/[—–]/g, ' — ')
@@ -349,7 +349,7 @@ export async function composeCleanStory({
     report.steps.push({ voice: voice.name || voice.voiceId, singleVoice: true });
 
     // ── 4) Captions: ONE png per beat, exclusive windows ─────────────
-    const brandPurple = brand?.colors?.brand || '#9563FF';
+    const brandPurple = brand?.colors?.brand || '#5B5BD6';
     const fonts = ['Outfit-Bold.ttf', 'Outfit-SemiBold.ttf', 'Outfit-Regular.ttf']
         .map((n) => path.join(FONT_DIR, n))
         .filter((p) => fs.existsSync(p));
@@ -432,7 +432,7 @@ export async function composeCleanStory({
     report.steps.push({ captions: capLayers.map((l) => ({ text: l.text, start: l.start, end: l.end })) });
 
     // ── 5) Mix: VO only + soft bed (never plate audio) ───────────────
-    // Shared ambient bed asset (filename is legacy; not client-specific copy)
+    // Shared ambient bed asset (legacy filename on disk; not client-specific)
     const bedSrc = path.join(__dirname, 'data', 'audio', 'taskiz-ambient-bed.m4a');
     let bedPath = bedSrc;
     if (!fs.existsSync(bedPath)) {

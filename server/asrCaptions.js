@@ -183,7 +183,7 @@ export async function asrStoryPlate(stitchedVideoPath, workDir, opts = {}) {
  */
 export function scheduleKaraokeFromAsr(
     words,
-    { totalDuration = null, maxWordsPerPhrase = 11 } = {}
+    { totalDuration = null, maxWordsPerPhrase = 11, brandName = '' } = {}
 ) {
     const raw = (words || []).map((w) => ({
         word: String(w.word || '').trim(),
@@ -191,25 +191,56 @@ export function scheduleKaraokeFromAsr(
         end: Math.max(0, Number(w.end) || Number(w.start) || 0),
     }));
 
-    // Merge Whisper mishears: "Task is" / "Task as" / "task iz" → "Taskiz"
+    // Merge Whisper mishears of the active Brand OS name (any workspace)
+    const brandFix = String(brandName || '').trim();
+    const isTaskizBrand = /^taskiz$/i.test(brandFix);
     const list = [];
     for (let i = 0; i < raw.length; i++) {
         const cur = raw[i];
         const next = raw[i + 1];
         const curBase = cur.word.replace(/[.,!?…]+$/g, '');
         const nextBase = next ? next.word.replace(/[.,!?…]+$/g, '') : '';
-        if (/^task$/i.test(curBase) && next && /^(is|as|iz)$/i.test(nextBase)) {
+        // Taskiz-only: Whisper often splits "Taskiz" → "task" + "is" / "taskis"
+        if (
+            isTaskizBrand &&
+            /^task$/i.test(curBase) &&
+            next &&
+            /^(is|as|iz)$/i.test(nextBase)
+        ) {
             const punct =
                 next.word.match(/[.,!?…]+$/)?.[0] ||
                 cur.word.match(/[.,!?…]+$/)?.[0] ||
                 '';
-            list.push({ word: `Taskiz${punct}`, start: cur.start, end: next.end });
+            list.push({ word: `${brandFix}${punct}`, start: cur.start, end: next.end });
             i += 1;
             continue;
         }
-        if (/^taskis$/i.test(curBase) || /^taskiz$/i.test(curBase)) {
+        if (isTaskizBrand && (/^taskis$/i.test(curBase) || /^taskiz$/i.test(curBase))) {
             const punct = cur.word.match(/[.,!?…]+$/)?.[0] || '';
-            list.push({ word: `Taskiz${punct}`, start: cur.start, end: cur.end });
+            list.push({
+                word: `${brandFix}${punct}`,
+                start: cur.start,
+                end: cur.end,
+            });
+            continue;
+        }
+        // Generic: if Whisper emits a close misspelling of brandFix, restore it
+        if (
+            brandFix &&
+            brandFix.length >= 3 &&
+            curBase.length >= 3 &&
+            !/^taskiz$/i.test(brandFix) &&
+            curBase.toLowerCase() !== brandFix.toLowerCase() &&
+            (curBase.toLowerCase().startsWith(brandFix.slice(0, 3).toLowerCase()) ||
+                brandFix.toLowerCase().startsWith(curBase.slice(0, 3).toLowerCase())) &&
+            Math.abs(curBase.length - brandFix.length) <= 2
+        ) {
+            const punct = cur.word.match(/[.,!?…]+$/)?.[0] || '';
+            list.push({
+                word: `${brandFix}${punct}`,
+                start: cur.start,
+                end: cur.end,
+            });
             continue;
         }
         list.push(cur);

@@ -228,11 +228,15 @@ export function socialTitle(text, { maxLen = 48, role = 'hook' } = {}) {
         .trim();
     if (!t) return roleDefaults(role);
 
-    // Drop soft marketing openers
-    t = t
-        .replace(/^(a simple app for|introducing|welcome to|meet)\s+/i, '')
-        .replace(/\s*[—–-]\s*taskiz\.?$/i, '')
-        .trim();
+    // Drop soft marketing openers / trailing brand dump (any workspace)
+    const brandTail = String(getBrand()?.name || '')
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    t = t.replace(/^(a simple app for|introducing|welcome to|meet)\s+/i, '');
+    if (brandTail) {
+        t = t.replace(new RegExp(`\\s*[—–-]\\s*${brandTail}\\.?$`, 'i'), '');
+    }
+    t = t.trim();
 
     // Prefer first clause if long
     if (t.length > maxLen) {
@@ -248,9 +252,24 @@ export function socialTitle(text, { maxLen = 48, role = 'hook' } = {}) {
 }
 
 function roleDefaults(role) {
-    if (role === 'tension') return 'The admin still waits until tonight.';
-    if (role === 'resolve') return 'One phone. Whole business.';
-    return 'Still running the business from texts?';
+    // Neutral placeholders — expandBeats prefers idea/Brand OS dialogue
+    if (role === 'tension') return 'Something had to change.';
+    if (role === 'resolve') return 'I found a clearer way.';
+    return 'Still doing it the hard way?';
+}
+
+/**
+ * Estimate beat length from spoken dialogue so clips don't hang silent after the line.
+ * ~2.8 words/sec natural speech + short tail pad.
+ */
+export function estimateDialogueDurationSec(text, { min = 2.2, max = 5.2, pad = 0.28 } = {}) {
+    const words = String(text || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+    if (!words) return min;
+    const sec = words / 2.8 + pad;
+    return Math.round(Math.max(min, Math.min(max, sec)) * 10) / 10;
 }
 
 /**
@@ -354,12 +373,20 @@ export function expandBeats(idea, { flowId, styleId } = {}) {
             idea.videoMotion ||
             null;
 
+        // Duration from spoken length — not a fixed 5–6s that leaves dead air after the line
+        const templateDur = seeded.durationSec || tpl.durationSec || flow.defaultDurationSec || 5;
+        const speechDur = estimateDialogueDurationSec(dialogue, {
+            min: 2.2,
+            max: Math.min(5.2, Number(templateDur) || 5),
+            pad: 0.25,
+        });
+
         return {
             id: seeded.id || `beat-${idx + 1}`,
             index: idx,
             role,
             label: tpl.label,
-            durationSec: seeded.durationSec || tpl.durationSec || flow.defaultDurationSec,
+            durationSec: speechDur,
             dialogue,
             voiceLine: dialogue,
             spokenCaption: dialogue,

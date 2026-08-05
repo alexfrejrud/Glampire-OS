@@ -33,11 +33,15 @@ Port of the [arcads-claude-code](https://github.com/krusemediallc/arcads-claude-
 - `server/nativeUiAds.js` — 12 native UI templates
 - `server/genAudit.js` — JSONL audit log
 
-## Brand OS rules (still true)
+## Brand OS rules (still true — all Glampire OS workspaces)
 
 - **Photo plates** for branded ads: no painted logos/type → `adCompose` + Brand OS.
 - **Native UI lane**: exception — the creative *is* the UI chrome; type is in-model.
 - Spoken reels: ASR karaoke when Whisper succeeds; never keyword title cards on speech reels.
+- Platform defaults (`PLATFORM_BRAND_DEFAULTS` in `brandLoader.js`): ASR on, `caption_talk`, organic chrome, documentary default style.
+- Bulk reels: unique scripts + cast per item (`contentEngine` + `brandCastVariant`); no forced primary CTA on every resolve.
+- Stills for reels: always 9:16 + `stillReframe` pad; UI preview `object-fit: contain`.
+- Never hardcode one client’s purple, CTA, or logo path into layout math or video chrome.
 
 ## API (quick)
 

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUDIO_DIR = path.join(__dirname, 'data', 'audio');
+// Legacy on-disk name — shared platform bed for all workspaces
 const DEFAULT_BED = path.join(AUDIO_DIR, 'taskiz-ambient-bed.m4a');
 const BED_DURATION_SEC = 45;
 

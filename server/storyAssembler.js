@@ -87,6 +87,31 @@ async function probeDuration(filePath) {
     }
 }
 
+/** Probe first video stream width/height */
+async function probeVideoSize(filePath) {
+    try {
+        const { stdout } = await run('ffprobe', [
+            '-v',
+            'error',
+            '-select_streams',
+            'v:0',
+            '-show_entries',
+            'stream=width,height',
+            '-of',
+            'csv=p=0',
+            filePath,
+        ]);
+        const [w, h] = String(stdout)
+            .trim()
+            .split(',')
+            .map((x) => parseInt(x, 10));
+        if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return { w, h };
+    } catch {
+        /* ignore */
+    }
+    return null;
+}
+
 async function clipHasAudio(filePath) {
     try {
         const { stdout } = await run('ffprobe', [
@@ -104,6 +129,21 @@ async function clipHasAudio(filePath) {
     } catch {
         return false;
     }
+}
+
+/**
+ * Build 9:16 normalize filter.
+ * Portrait sources: fill + light crop. Landscape/wide sources: fit + pad (no face-slicing crop).
+ */
+function portraitNormalizeVf(size) {
+    const targetW = 1080;
+    const targetH = 1920;
+    const isWide = size && size.w > 0 && size.h > 0 && size.w / size.h > 0.72; // wider than ~3:4
+    if (isWide) {
+        // Letterbox into 9:16 — preserves full frame instead of cropping heads off
+        return `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2:black,fps=30,setsar=1,format=yuv420p`;
+    }
+    return `scale=${targetW}:${targetH}:force_original_aspect_ratio=increase,crop=${targetW}:${targetH},fps=30,setsar=1,format=yuv420p`;
 }
 
 /**
@@ -195,7 +235,8 @@ export async function assembleStoryReel(
         localClips.push(dest);
     }
 
-    // 2. Normalize — KEEP native speech audio when present (Kling diegetic)
+    // 2. Normalize to 9:16 — KEEP native speech; pad landscape instead of face-crop;
+    //    strip long trailing silence so talk beats don't hang after the last word.
     const normalized = [];
     const actualDurations = [];
     let anySourceAudio = false;
@@ -203,12 +244,14 @@ export async function assembleStoryReel(
         const out = path.join(work, `norm-${i}.mp4`);
         const hasA = await clipHasAudio(localClips[i]);
         if (hasA) anySourceAudio = true;
+        const size = await probeVideoSize(localClips[i]);
+        const vf = portraitNormalizeVf(size);
         const args = [
             '-y',
             '-i',
             localClips[i],
             '-vf',
-            'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,setsar=1,format=yuv420p',
+            vf,
             '-c:v',
             'libx264',
             '-preset',
@@ -221,13 +264,55 @@ export async function assembleStoryReel(
             '+faststart',
         ];
         if (hasA) {
-            args.push('-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2');
+            // Trim trailing silence after speech; keep a tiny natural tail (~0.2s stop_duration)
+            args.push(
+                '-af',
+                'silenceremove=stop_periods=1:stop_duration=0.18:stop_threshold=-38dB:detection=peak',
+                '-c:a',
+                'aac',
+                '-b:a',
+                '160k',
+                '-ar',
+                '48000',
+                '-ac',
+                '2',
+                '-shortest'
+            );
         } else {
             // silent plate: drop audio for now; bed/VO mix adds audio later
             args.push('-an');
         }
         args.push(out);
-        await run('ffmpeg', args);
+        try {
+            await run('ffmpeg', args);
+        } catch (e) {
+            // Fallback without silence trim if filter fails on odd audio
+            console.warn('[storyAssembler] norm with silence-trim failed, retry plain:', e.message);
+            const fallback = [
+                '-y',
+                '-i',
+                localClips[i],
+                '-vf',
+                vf,
+                '-c:v',
+                'libx264',
+                '-preset',
+                'veryfast',
+                '-crf',
+                '20',
+                '-pix_fmt',
+                'yuv420p',
+                '-movflags',
+                '+faststart',
+            ];
+            if (hasA) {
+                fallback.push('-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2');
+            } else {
+                fallback.push('-an');
+            }
+            fallback.push(out);
+            await run('ffmpeg', fallback);
+        }
         const dur = (await probeDuration(out)) || Number(beats[i].durationSec) || 5;
         actualDurations.push(dur);
         normalized.push(out);
@@ -312,6 +397,8 @@ export async function assembleStoryReel(
                 const totalDur = actualDurations.reduce((a, b) => a + b, 0);
                 asrKaraokeWindows = scheduleKaraokeFromAsr(asr.words, {
                     totalDuration: totalDur,
+                    // Active Brand OS name — ASR mishear fixes for any workspace
+                    brandName: brand?.name || '',
                 });
                 asrMeta = {
                     ok: true,
@@ -534,7 +621,7 @@ async function burnTitleTrack({
     cta,
 }) {
     const font = findFont();
-    const color = (brand.colors?.brand || '#9563FF').replace('#', '');
+    const color = (brand.colors?.brand || '#5B5BD6').replace('#', '');
     let t = 0;
     const filters = [];
 

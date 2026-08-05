@@ -2,6 +2,9 @@
  * Unified video generation — routes to Grok (xAI) or fal (Kling / Seedance / MiniMax).
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
     startVideo as grokStartVideo,
     getVideoStatus as grokGetVideoStatus,
@@ -17,9 +20,79 @@ import {
 } from './fal.js';
 import { getVideoModel, isModelAvailable } from './videoModels.js';
 import { createJob, getJob, updateJob } from './videoJobs.js';
+import { resolveStillPath } from './stillReframe.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const RENDERS_DIR = path.join(__dirname, 'data', 'renders');
+
+/**
+ * xAI / fal cannot fetch studio-local paths like `/api/renders/stills/…`.
+ * Convert local stills (and other render URLs) to data: base64 for I2V.
+ * Pass through https:// and data: URLs unchanged.
+ */
+export function resolveImageForRemoteProvider(imageUrl) {
+    const raw = String(imageUrl || '').trim();
+    if (!raw) return raw;
+    if (raw.startsWith('data:')) return raw;
+    if (/^https?:\/\//i.test(raw)) {
+        // localhost / 127.0.0.1 are not reachable by xAI/fal — convert if we can map them
+        try {
+            const u = new URL(raw);
+            if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '0.0.0.0') {
+                return resolveImageForRemoteProvider(u.pathname + u.search);
+            }
+        } catch {
+            /* keep as-is */
+        }
+        return raw;
+    }
+
+    // /api/renders/stills/<file>
+    const stillMatch = raw.match(/^\/api\/renders\/stills\/([^/?#]+)/i);
+    if (stillMatch) {
+        const full = resolveStillPath(stillMatch[1]);
+        if (full) return fileToDataUrl(full);
+    }
+
+    // /api/renders/ads/<file> or /api/renders/<file>
+    const renderMatch = raw.match(/^\/api\/renders\/(?:ads\/)?([^/?#]+)/i);
+    if (renderMatch) {
+        const base = path.basename(renderMatch[1]);
+        const candidates = [
+            path.join(RENDERS_DIR, 'stills', base),
+            path.join(RENDERS_DIR, 'ads', base),
+            path.join(RENDERS_DIR, base),
+        ];
+        for (const c of candidates) {
+            if (fs.existsSync(c) && fs.statSync(c).isFile()) return fileToDataUrl(c);
+        }
+    }
+
+    // Absolute path on disk (dev only)
+    if (path.isAbsolute(raw) && fs.existsSync(raw) && fs.statSync(raw).isFile()) {
+        return fileToDataUrl(raw);
+    }
+
+    return raw;
+}
+
+function fileToDataUrl(filePath) {
+    const buf = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mime =
+        ext === '.png'
+            ? 'image/png'
+            : ext === '.webp'
+              ? 'image/webp'
+              : ext === '.gif'
+                ? 'image/gif'
+                : 'image/jpeg';
+    return `data:${mime};base64,${buf.toString('base64')}`;
+}
 
 function clampDuration(model, duration) {
-    const opts = model.durationOptions || [5, 6];
+    // Prefer short talk-clip durations when model allows (reduces silent tail after speech)
+    const opts = model.durationOptions || [3, 4, 5, 6];
     const n = Number(duration) || model.durationDefault || 5;
     // pick nearest allowed
     let best = opts[0];
@@ -113,10 +186,26 @@ export async function startUnifiedVideo({
         throw err;
     }
 
+    // Studio stills are often `/api/renders/stills/…` after 9:16 reframe —
+    // remote I2V providers need a public URL or base64 data URI.
+    const remoteImageUrl = resolveImageForRemoteProvider(imageUrl);
+    if (
+        remoteImageUrl &&
+        !remoteImageUrl.startsWith('data:') &&
+        !/^https?:\/\//i.test(remoteImageUrl)
+    ) {
+        const err = new Error(
+            `Cannot send image to video provider — local path not found: ${String(imageUrl).slice(0, 120)}`
+        );
+        err.status = 400;
+        err.code = 'IMAGE_NOT_REMOTE';
+        throw err;
+    }
+
     if (model.provider === 'xai') {
         const started = await grokStartVideo({
             prompt,
-            imageUrl,
+            imageUrl: remoteImageUrl,
             duration: clampDuration(model, duration ?? model.durationDefault),
             aspectRatio,
             dialogue: dialogue || null,
@@ -128,6 +217,7 @@ export async function startUnifiedVideo({
             grokRequestId: started.requestId,
             status: 'pending',
             prompt,
+            // Keep original studio path for debugging; provider got remote/base64
             imageUrl,
             dialogue: dialogue || null,
         });
@@ -144,7 +234,7 @@ export async function startUnifiedVideo({
     // fal
     const input = buildFalInput(model, {
         prompt,
-        imageUrl,
+        imageUrl: remoteImageUrl,
         duration: duration ?? model.durationDefault,
         aspectRatio,
         generateAudio,
@@ -233,8 +323,23 @@ export async function pollUnifiedVideo(requestId) {
             };
         }
         if (status === 'failed' || status === 'expired') {
-            updateJob(job.id, { status: 'failed', error: `Video ${status}` });
-            return { status: 'failed', url: null, modelId: job.modelId, provider: 'xai' };
+            const detail =
+                result.raw?.error?.message ||
+                result.raw?.error?.code ||
+                (typeof result.raw?.error === 'string' ? result.raw.error : null) ||
+                result.raw?.message ||
+                status;
+            const error = `Video ${status}: ${detail}`;
+            updateJob(job.id, { status: 'failed', error, raw: result.raw || null });
+            return {
+                status: 'failed',
+                url: null,
+                modelId: job.modelId,
+                modelLabel: job.modelLabel,
+                provider: 'xai',
+                error,
+                raw: result.raw,
+            };
         }
         return {
             status: status || 'pending',

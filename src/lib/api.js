@@ -67,6 +67,18 @@ export const api = {
         req('/api/workspaces', { method: 'POST', body: JSON.stringify(body) }),
     publishConfig: () => req('/api/publish-config'),
 
+    /** Server-side creative queue backup (per workspace) */
+    getQueue: () => req('/api/queue'),
+    listAllQueues: () => req('/api/queue/all'),
+    saveQueue: (body) =>
+        req('/api/queue', { method: 'PUT', body: JSON.stringify(body), timeoutMs: 60000 }),
+    syncQueue: (body) =>
+        req('/api/queue/sync', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 60000,
+        }),
+
     // Brand OS onboarding
     onboarding: () => req('/api/onboarding'),
     saveOnboarding: (body) =>
@@ -171,6 +183,56 @@ export const api = {
     publish: (body) =>
         req('/api/upload-post/publish', { method: 'POST', body: JSON.stringify(body) }),
     publishStatus: (requestId) => req(`/api/upload-post/status/${requestId}`),
+
+    // Studio Calendar (Upload-Post send engine)
+    calendar: (params = {}) => {
+        const q = new URLSearchParams();
+        if (params.from) q.set('from', params.from);
+        if (params.to) q.set('to', params.to);
+        const qs = q.toString();
+        return req(`/api/calendar${qs ? `?${qs}` : ''}`);
+    },
+    calendarStats: () => req('/api/calendar/stats'),
+    calendarSettings: (body) =>
+        req('/api/calendar/settings', { method: 'PUT', body: JSON.stringify(body) }),
+    calendarCreateSlot: (body) =>
+        req('/api/calendar/slots', { method: 'POST', body: JSON.stringify(body) }),
+    calendarUpdateSlot: (id, body) =>
+        req(`/api/calendar/slots/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    calendarReschedule: (id, scheduledAt) =>
+        req(`/api/calendar/slots/${id}/reschedule`, {
+            method: 'POST',
+            body: JSON.stringify({ scheduledAt }),
+        }),
+    calendarDeleteSlot: (id) => req(`/api/calendar/slots/${id}`, { method: 'DELETE' }),
+    calendarDeleteMany: (ids) =>
+        req('/api/calendar/slots/delete-many', {
+            method: 'POST',
+            body: JSON.stringify({ ids }),
+        }),
+    calendarPreflight: (body) =>
+        req('/api/calendar/preflight', { method: 'POST', body: JSON.stringify(body) }),
+    calendarAutoPlan: (body) =>
+        req('/api/calendar/auto-plan', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 60000,
+        }),
+    calendarFireSlot: (id, body = {}) =>
+        req(`/api/calendar/slots/${id}/fire`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 120000,
+        }),
+    calendarFireBatch: (body) =>
+        req('/api/calendar/fire-batch', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            timeoutMs: 300000,
+        }),
+    calendarSlotStatus: (id) => req(`/api/calendar/slots/${id}/status`),
+    calendarUndoAutoPlan: () =>
+        req('/api/calendar/undo-auto-plan', { method: 'POST', body: '{}' }),
 
     listRefs: () => req('/api/refs'),
     addRef: (body) => req('/api/refs', { method: 'POST', body: JSON.stringify(body) }),

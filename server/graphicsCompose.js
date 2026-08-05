@@ -164,7 +164,7 @@ function wrapText(text, maxChars = 28, maxLines = 8) {
 function brandTokens(brand) {
     const c = brand?.colors || {};
     return {
-        brand: c.brand || '#9563FF',
+        brand: c.brand || '#5B5BD6',
         brandDeep: c.brandDeep || '#663CF6',
         accent: c.accent || '#ED81FF',
         warm: c.warm || '#E88146',
@@ -496,7 +496,7 @@ function svgWordWindow({
     words,
     activeIndex,
     role = 'hook',
-    brandPurple = '#9563FF',
+    brandPurple = '#5B5BD6',
     mode = 'karaoke',
 }) {
     const list = Array.isArray(words) ? words.filter(Boolean) : [];
@@ -527,7 +527,7 @@ function svgWordWindow({
     if (cur.length) lines.push(cur);
 
     const fillActive = '#FFFFFF';
-    const fillTrail = brandPurple || '#9563FF';
+    const fillTrail = brandPurple || '#5B5BD6';
     // solid hex only — resvg mishandles rgba() on tspan fills (renders black)
     const fillUpcoming = '#D0D0D4';
 
@@ -587,7 +587,7 @@ function svgWordWindow({
  * White fill + thick black stroke + soft drop shadow only (matches organic karaoke look).
  * Every word from dialogue is drawn (no truncation).
  */
-function svgBeatCaptionFull({ text, role = 'hook', brandPurple = '#9563FF' }) {
+function svgBeatCaptionFull({ text, role = 'hook', brandPurple = '#5B5BD6' }) {
     const raw = String(text || '')
         .replace(/[—–]/g, ' — ')
         .replace(/\s+/g, ' ')
@@ -683,7 +683,7 @@ function svgReelCaption(opts) {
 export function buildAsrKaraokeLayers({
     workDir,
     asrWindows,
-    brandPurple = '#9563FF',
+    brandPurple = '#5B5BD6',
     role = 'hook',
 }) {
     const layers = [];
@@ -737,7 +737,7 @@ function buildWordCaptionLayers({
     role,
     t0,
     durationSec,
-    brandPurple = '#9563FF',
+    brandPurple = '#5B5BD6',
     holdUntil = null,
     speechStartRel = null,
     speechEndRel = null,
@@ -1180,7 +1180,7 @@ export function buildStoryGraphics({
         const asrLayers = buildAsrKaraokeLayers({
             workDir,
             asrWindows: asrKaraokeWindows,
-            brandPurple: tokens.brand || tokens.brandDeep || '#9563FF',
+            brandPurple: tokens.brand || tokens.brandDeep || '#5B5BD6',
             role: 'hook',
         });
         layers.push(...asrLayers);
@@ -1248,7 +1248,7 @@ export function buildStoryGraphics({
                 role: beat.role || 'hook',
                 t0: cutStart,
                 durationSec: Math.max(0.8, cutEnd - cutStart),
-                brandPurple: tokens.brand || '#9563FF',
+                brandPurple: tokens.brand || '#5B5BD6',
                 holdUntil: cutEnd,
                 speechStartRel: beat.speechStartRel ?? null,
                 speechEndRel: beat.speechEndRel ?? null,
@@ -1265,7 +1265,7 @@ export function buildStoryGraphics({
                 svgBeatCaptionFull({
                     text: captionText,
                     role: beat.role || 'hook',
-                    brandPurple: tokens.brand || '#9563FF',
+                    brandPurple: tokens.brand || '#5B5BD6',
                 }),
                 pngPath
             );

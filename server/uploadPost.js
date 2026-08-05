@@ -144,7 +144,7 @@ export async function uploadPhotos({
         const { buf, contentType } = await fetchMediaBuffer(url);
         const ext = guessExt(contentType, 'jpg');
         const blob = new Blob([buf], { type: contentType || 'image/jpeg' });
-        form.append('photos[]', blob, `taskiz-${Date.now()}-${i}.${ext}`);
+        form.append('photos[]', blob, `studio-${Date.now()}-${i}.${ext}`);
         i += 1;
     }
 
@@ -191,7 +191,7 @@ export async function uploadVideo({
     if (addToQueue) form.append('add_to_queue', 'true');
     if (facebookPageId) form.append('facebook_page_id', facebookPageId);
     if (firstComment) form.append('first_comment', firstComment);
-    // TikTok AI-generated content flag (Taskiz media is Grok-generated)
+    // TikTok AI-generated content flag (studio media is model-generated)
     if (isAigc) form.append('is_aigc', 'true');
 
     const res = await fetch(`${BASE}/upload`, {
@@ -228,7 +228,7 @@ export async function publishCreative({
     addToQueue,
     facebookPageId,
 }) {
-    const title = caption || headline || 'Taskiz';
+    const title = caption || headline || 'Studio';
     const description = caption || headline || '';
 
     if (format === 'reel' || videoUrl) {

@@ -1,7 +1,7 @@
 /**
  * Video model registry — selectable engines for I2V / story beats.
  *
- * COST RULE (Taskiz studio):
+ * COST RULE (Glampire OS / all workspaces):
  *  - Default = Grok (draft / volume) — do not burn fal $ on every experiment
  *  - Kling Standard = cheap polish when needed
  *  - Kling Pro + audio = hero / paid ads only (expensive)

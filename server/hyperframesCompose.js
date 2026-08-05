@@ -48,12 +48,12 @@ export function writeHyperframesProject({ item, beats, brand, style, stitchedVid
 
 ## Tokens
 - ink: ${colors.ink || '#000'}
-- brand: ${colors.brand || '#9563FF'}
-- brandDeep: ${colors.brandDeep || '#663CF6'}
-- accent: ${colors.accent || '#ED81FF'}
-- dark: ${colors.dark || '#141233'}
+- brand: ${colors.brand || '#5B5BD6'}
+- brandDeep: ${colors.brandDeep || colors.brand || '#4A4AC0'}
+- accent: ${colors.accent || '#A5A5F0'}
+- dark: ${colors.dark || '#141414'}
 - surface: ${colors.surface || '#F7F7F7'}
-- font: ${brand.fonts?.sans || 'Outfit, Inter, system-ui'}
+- font: ${brand.fonts?.sans || 'system-ui, sans-serif'}
 
 ## Video style
 - Pack: ${style?.label || item.styleLabel}
@@ -106,8 +106,8 @@ export function writeHyperframesProject({ item, beats, brand, style, stitchedVid
         .join('\n');
 
     const endStart = Math.max(0, totalDur - 2.6);
-    const cta = escapeHtml(item.cta || brand.primaryCta || 'Join the Beta');
-    const brandName = escapeHtml(brand.name || 'Taskiz');
+    const cta = escapeHtml(item.cta || brand.primaryCta || brand.ctas?.[0] || 'Learn more');
+    const brandName = escapeHtml(brand.name || 'Brand');
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -117,12 +117,12 @@ export function writeHyperframesProject({ item, beats, brand, style, stitchedVid
   <style>
     :root {
       --ink: ${colors.ink || '#000'};
-      --brand: ${colors.brand || '#9563FF'};
-      --brand-deep: ${colors.brandDeep || '#663CF6'};
-      --accent: ${colors.accent || '#ED81FF'};
-      --dark: ${colors.dark || '#141233'};
+      --brand: ${colors.brand || '#5B5BD6'};
+      --brand-deep: ${colors.brandDeep || colors.brand || '#4A4AC0'};
+      --accent: ${colors.accent || '#A5A5F0'};
+      --dark: ${colors.dark || '#141414'};
       --surface: ${colors.surface || '#F7F7F7'};
-      --font: ${brand.fonts?.sans || 'Outfit, Inter, system-ui, sans-serif'};
+      --font: ${brand.fonts?.sans || 'system-ui, sans-serif'};
     }
     html, body {
       margin: 0; padding: 0;

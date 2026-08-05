@@ -182,6 +182,21 @@ function loadBrandFile(id) {
     return deepMerge(base, overrides || {});
 }
 
+/**
+ * Platform defaults applied to every workspace Brand OS at read time.
+ * Client fields win when set; missing keys get Glampire OS studio defaults.
+ * Never Taskiz- or WEPOC-specific — same for all clients.
+ */
+export const PLATFORM_BRAND_DEFAULTS = {
+    defaultVideoStyleId: 'documentary_commercial',
+    defaultFlowId: 'pain_to_cta',
+    defaultVideoModelId: 'grok',
+    defaultDeliveryMode: 'caption_talk',
+    defaultGenerateAudio: false,
+    defaultUseAsrCaptions: true,
+    defaultBrandChrome: 'organic',
+};
+
 /** Live brand for active (or given) workspace */
 export function getBrand(id = getActiveWorkspaceId()) {
     const b = loadBrandFile(id);
@@ -191,7 +206,8 @@ export function getBrand(id = getActiveWorkspaceId()) {
             id,
             name: id,
             oneLiner: '',
-            ctas: [],
+            ctas: ['Learn more'],
+            primaryCta: 'Learn more',
             colors: {},
             fonts: {},
             icp: { primary: [], secondary: [], later: [] },
@@ -199,9 +215,19 @@ export function getBrand(id = getActiveWorkspaceId()) {
             photographyStyle: '',
             imageNegatives: '',
             compositionNotes: '',
+            ...PLATFORM_BRAND_DEFAULTS,
         };
     }
-    return { id, ...b };
+    // Fill only missing platform keys (do not overwrite client choices)
+    const merged = { id, ...PLATFORM_BRAND_DEFAULTS, ...b };
+    // Explicit false/null for booleans must win over defaults when set on brand
+    if (Object.prototype.hasOwnProperty.call(b, 'defaultUseAsrCaptions')) {
+        merged.defaultUseAsrCaptions = b.defaultUseAsrCaptions;
+    }
+    if (Object.prototype.hasOwnProperty.call(b, 'defaultGenerateAudio')) {
+        merged.defaultGenerateAudio = b.defaultGenerateAudio;
+    }
+    return merged;
 }
 
 export function saveBrandOverrides(partial, id = getActiveWorkspaceId()) {
@@ -340,14 +366,7 @@ export function createWorkspace({ id, name, oneLiner = '', category = '' }) {
         castBrief: '',
         environment: '',
         wardrobe: '',
-        defaultVideoStyleId: 'documentary_commercial',
-        defaultFlowId: 'pain_to_cta',
-        defaultVideoModelId: 'grok',
-        defaultDeliveryMode: 'caption_talk',
-        defaultGenerateAudio: false,
-        // Platform default: Whisper spoken captions on every workspace (opt-out per brand)
-        defaultUseAsrCaptions: true,
-        defaultBrandChrome: 'organic',
+        ...PLATFORM_BRAND_DEFAULTS,
     };
     writeJson(path.join(dir, 'brand.json'), brand);
 

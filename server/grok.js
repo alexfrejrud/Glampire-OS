@@ -319,16 +319,28 @@ export async function startVideo({
             `The person on camera speaks clearly to the lens with natural lip-sync.`,
             `They say exactly: "${line}"`,
             `Native dialogue audio must match mouth movement. No off-camera narrator.`,
+            `CRITICAL PACING: end the clip immediately after the last spoken word — max ~0.25s hold, no long silent stare before cut.`,
+        ]
+            .filter(Boolean)
+            .join(' ');
+    } else {
+        finalPrompt = [
+            finalPrompt,
+            `CRITICAL PACING: no long frozen hold at the end; keep motion purposeful to the last frame.`,
         ]
             .filter(Boolean)
             .join(' ');
     }
 
+    // Story reels are always vertical; clamp duration to sensible talk-clip range
+    const ar = String(aspectRatio || '9:16').trim() === '16:9' ? '9:16' : aspectRatio || '9:16';
+    const dur = Math.max(2, Math.min(8, Number(duration) || 5));
+
     const body = {
         model: videoModel(),
         prompt: finalPrompt,
-        duration,
-        aspect_ratio: aspectRatio,
+        duration: dur,
+        aspect_ratio: ar === '9:16' || ar === '9:19.5' || ar === '9:20' ? ar : '9:16',
         image: { url: imageUrl },
     };
 

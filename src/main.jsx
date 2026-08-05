@@ -36,6 +36,7 @@ import {
     Building2,
     Wrench,
     MessageSquareText,
+    Calendar,
 } from 'lucide-react';
 import { Theme } from '@astryxdesign/core/theme';
 import { AppShell } from '@astryxdesign/core/AppShell';
@@ -58,7 +59,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Switch } from '@astryxdesign/core/Switch';
 import { Selector } from '@astryxdesign/core/Selector';
 import { api, waitForVideo } from './lib/api';
-import { loadStore, saveStore, upsertItem } from './lib/store';
+import { loadStore, saveStore, upsertItem, listLocalQueues, copyQueue } from './lib/store';
 import { getWorkspaceId, setWorkspaceId } from './lib/workspace';
 import { glampireTheme, loadThemeMode, saveThemeMode } from './theme';
 import { OnboardingWizard } from './components/OnboardingWizard';
@@ -70,6 +71,7 @@ import {
     UgcFormulaView,
     GenAuditView,
 } from './components/CreativeTools';
+import { CalendarView } from './components/CalendarView';
 import './styles.css';
 import './story-styles.css';
 
@@ -321,6 +323,12 @@ function StudioSideNav({
         { id: 'create', label: 'Create batch', icon: Plus },
         { id: 'queue', label: 'Review queue', icon: LayoutGrid, badge: counts.total },
         { id: 'approved', label: 'Approved', icon: ShieldCheck, badge: counts.approved },
+        {
+            id: 'calendar',
+            label: 'Calendar',
+            icon: Calendar,
+            badge: counts.calendar || null,
+        },
     ];
     const needsOnboarding = Boolean(activeWorkspace?.needsOnboarding);
     const workspaceNav = [
@@ -1779,6 +1787,11 @@ function QueueView({
     videoModels,
     busy,
     generatingAll,
+    onOpenCalendar,
+    otherQueues = [],
+    activeWorkspaceId,
+    onRestoreQueue,
+    onSwitchWorkspace,
 }) {
     const [visibleCount, setVisibleCount] = useState(QUEUE_PAGE_SIZE);
     const loadMoreRef = useRef(null);
@@ -1832,13 +1845,55 @@ function QueueView({
     const selected = items.find((i) => i.id === selectedId) || null;
 
     if (!items.length) {
+        const recoverable = (otherQueues || []).filter(
+            (q) => q.itemCount > 0 && q.workspaceId !== activeWorkspaceId
+        );
         return (
             <VStack gap={4} as="main">
                 <EmptyState
                     title="No content in the queue yet"
-                    description="Generate a pack from Create batch — ideas draft from this workspace Brand OS."
+                    description="Generate a pack from Create batch — ideas draft from this workspace Brand OS. Queues are saved per workspace in this browser."
                     icon={<LayoutGrid size={32} />}
                 />
+                {recoverable.length > 0 ? (
+                    <Card padding={4}>
+                        <VStack gap={3}>
+                            <Heading level={3}>Found content in another workspace</Heading>
+                            <Text type="supporting" color="secondary" size="sm" as="p">
+                                Your creatives were not deleted — they live under a different workspace
+                                key in this browser (e.g. Taskiz vs WEPOC).
+                            </Text>
+                            {recoverable.map((q) => (
+                                <HStack key={q.workspaceId} gap={2} wrap="wrap" vAlign="center">
+                                    <Text weight="semibold">
+                                        {q.workspaceId}
+                                    </Text>
+                                    <Badge
+                                        label={`${q.itemCount} items`}
+                                        variant="neutral"
+                                    />
+                                    {q.packLabel ? (
+                                        <Text type="supporting" size="sm" color="secondary">
+                                            {q.packLabel}
+                                        </Text>
+                                    ) : null}
+                                    <Button
+                                        label="Switch workspace"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => onSwitchWorkspace?.(q.workspaceId)}
+                                    />
+                                    <Button
+                                        label="Copy into this workspace"
+                                        variant="primary"
+                                        size="sm"
+                                        onClick={() => onRestoreQueue?.(q.workspaceId)}
+                                    />
+                                </HStack>
+                            ))}
+                        </VStack>
+                    </Card>
+                ) : null}
             </VStack>
         );
     }
@@ -1855,19 +1910,29 @@ function QueueView({
                 title={packLabel || 'Review queue'}
                 description={`${descParts.join(' · ')} · approve only what you ship`}
                 actions={
-                    <Button
-                        label={generatingAll ? 'Generating all stills…' : 'Generate all stills'}
-                        icon={
-                            generatingAll ? (
-                                <Loader2 className="spin" size={16} />
-                            ) : (
-                                <WandSparkles size={16} />
-                            )
-                        }
-                        isLoading={generatingAll}
-                        isDisabled={generatingAll}
-                        onClick={onGenerateAll}
-                    />
+                    <HStack gap={2} wrap="wrap">
+                        {keptCount > 0 && onOpenCalendar ? (
+                            <Button
+                                label="Open calendar"
+                                variant="secondary"
+                                icon={<Calendar size={16} />}
+                                onClick={onOpenCalendar}
+                            />
+                        ) : null}
+                        <Button
+                            label={generatingAll ? 'Generating all stills…' : 'Generate all stills'}
+                            icon={
+                                generatingAll ? (
+                                    <Loader2 className="spin" size={16} />
+                                ) : (
+                                    <WandSparkles size={16} />
+                                )
+                            }
+                            isLoading={generatingAll}
+                            isDisabled={generatingAll}
+                            onClick={onGenerateAll}
+                        />
+                    </HStack>
                 }
             />
 
@@ -3463,6 +3528,8 @@ function App() {
         setStore((prev) => {
             const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch };
             saveStore(next);
+            // Fire-and-forget server backup (per workspace)
+            api.saveQueue(next).catch(() => {});
             return next;
         });
     }, []);
@@ -3489,17 +3556,47 @@ function App() {
                 (brandRes?.name ? String(brandRes.name).toUpperCase().replace(/[^A-Z0-9]/g, '') : '') ||
                 ''
         );
-        // Load queue, then re-attach any finished finals missing from the UI (e.g. after Bad Gateway)
+        // Sync local + server queue (server wins if local empty / smaller)
         const local = loadStore();
+        let queue = local;
+        try {
+            const synced = await api.syncQueue(local).catch(() => null);
+            if (synced && Array.isArray(synced.items)) {
+                queue = {
+                    items: synced.items,
+                    packLabel: synced.packLabel ?? local.packLabel,
+                    packId: synced.packId ?? local.packId,
+                    generatedAt: synced.generatedAt ?? local.generatedAt,
+                    styleId: synced.styleId,
+                    flowId: synced.flowId,
+                    videoModelId: synced.videoModelId,
+                    batchBrief: synced.batchBrief,
+                    batchMode: synced.batchMode,
+                    aspectRatio: synced.aspectRatio,
+                };
+                // Write winner back to localStorage
+                if (queue.items.length) {
+                    saveStore(queue);
+                }
+                if (
+                    (local.items?.length || 0) === 0 &&
+                    queue.items.length > 0
+                ) {
+                    setToast(`Restored ${queue.items.length} creatives from server backup`);
+                }
+            }
+        } catch {
+            /* keep local */
+        }
+
         try {
             const renderIndex = await api.listRenders().catch(() => null);
             const finals = renderIndex?.finals || {};
-            if (Object.keys(finals).length && Array.isArray(local.items)) {
+            if (Object.keys(finals).length && Array.isArray(queue.items)) {
                 let changed = false;
-                const nextItems = local.items.map((item) => {
+                const nextItems = queue.items.map((item) => {
                     const hit = finals[item.id];
                     if (!hit?.finalVideoUrl) return item;
-                    // Attach / refresh completed video even if card is stuck on Error
                     const needs =
                         item.status === 'error' ||
                         item.status === 'generating' ||
@@ -3518,18 +3615,19 @@ function App() {
                     };
                 });
                 if (changed) {
-                    const next = { ...local, items: nextItems };
+                    const next = { ...queue, items: nextItems };
                     saveStore(next);
+                    api.saveQueue(next).catch(() => {});
                     setStore(next);
                     setToast('Updated queue with completed story videos');
                 } else {
-                    setStore(local);
+                    setStore(queue);
                 }
             } else {
-                setStore(local);
+                setStore(queue);
             }
         } catch {
-            setStore(local);
+            setStore(queue);
         }
         setSelectedId(null);
         setFilter('all');
@@ -3676,13 +3774,113 @@ function App() {
         }
     }
 
+    const [calendarBadge, setCalendarBadge] = useState(0);
+
     const counts = useMemo(() => {
         const items = store.items || [];
         return {
             total: items.length,
             approved: items.filter((i) => i.status === 'approved' || i.status === 'published').length,
+            calendar: calendarBadge || null,
         };
-    }, [store.items]);
+    }, [store.items, calendarBadge]);
+
+    const refreshCalendarBadge = useCallback(async () => {
+        try {
+            const s = await api.calendarStats();
+            const c = s.counts || {};
+            setCalendarBadge((c.draft || 0) + (c.scheduled || 0) + (c.failed || 0));
+        } catch {
+            /* server may not have calendar routes yet / offline */
+        }
+    }, []);
+
+    // Badge only — once on workspace change, not every view switch (avoids request spam)
+    useEffect(() => {
+        refreshCalendarBadge();
+    }, [activeWorkspace?.id, refreshCalendarBadge]);
+
+    const handleCalendarToast = useCallback(
+        (msg) => {
+            setToast(msg);
+            refreshCalendarBadge();
+        },
+        [refreshCalendarBadge]
+    );
+
+    const [otherQueues, setOtherQueues] = useState([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const local = listLocalQueues();
+            let server = [];
+            try {
+                const data = await api.listAllQueues();
+                server = (data.queues || []).map((q) => ({
+                    workspaceId: q.workspaceId,
+                    itemCount: q.itemCount,
+                    packLabel: q.packLabel,
+                    source: 'server',
+                }));
+            } catch {
+                /* offline */
+            }
+            if (cancelled) return;
+            // Merge local + server by workspace, take max itemCount
+            const map = new Map();
+            for (const q of [...local, ...server]) {
+                const prev = map.get(q.workspaceId);
+                if (!prev || (q.itemCount || 0) > (prev.itemCount || 0)) {
+                    map.set(q.workspaceId, {
+                        workspaceId: q.workspaceId,
+                        itemCount: q.itemCount || 0,
+                        packLabel: q.packLabel || prev?.packLabel || null,
+                        source: q.source || 'local',
+                    });
+                }
+            }
+            setOtherQueues(
+                [...map.values()].filter((q) => q.itemCount > 0).sort((a, b) => b.itemCount - a.itemCount)
+            );
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [store.items, activeWorkspace?.id]);
+
+    async function handleRestoreQueue(fromWorkspaceId) {
+        try {
+            const toId = getWorkspaceId() || activeWorkspace?.id;
+            if (!toId) {
+                setToast('No active workspace to restore into');
+                return;
+            }
+            // Prefer local browser queue; if empty, pull server queue for that workspace
+            let next = null;
+            try {
+                next = copyQueue(fromWorkspaceId, toId);
+            } catch {
+                next = null;
+            }
+            if (!next?.items?.length) {
+                // Switch to source workspace on server briefly via API is hard;
+                // user should Switch workspace instead.
+                setToast(
+                    `No local queue for “${fromWorkspaceId}”. Use Switch workspace, then content should load from server backup if any.`
+                );
+                return;
+            }
+            setStore(next);
+            api.saveQueue(next).catch(() => {});
+            setToast(
+                `Restored ${next.items.length} item(s) from “${fromWorkspaceId}” into “${toId}”`
+            );
+            setView('queue');
+        } catch (e) {
+            setToast(e.message || 'Restore failed');
+        }
+    }
 
     function mergeBatchIntoStore(batch, options = {}) {
         const newItems = batch.items || [];
@@ -4016,16 +4214,26 @@ function App() {
                     setToast(
                         `Animating ${beat.label || beat.role} · ${item.videoModelLabel || item.videoModelId || 'grok'}…`
                     );
+                    const dialogueLine =
+                        beat.dialogue || beat.voiceLine || beat.spokenCaption || null;
+                    // Prefer dialogue-length duration so clips don't hang silent after the line
+                    const words = String(dialogueLine || '')
+                        .trim()
+                        .split(/\s+/)
+                        .filter(Boolean).length;
+                    const speechDur = words
+                        ? Math.max(2.2, Math.min(5.2, words / 2.8 + 0.25))
+                        : Number(beat.durationSec) || 4;
                     const started = await api.startVideo({
                         prompt: beat.videoPrompt || item.videoPrompt,
                         imageUrl: beat.imageUrl,
                         format: 'reel',
-                        duration: beat.durationSec || 5,
+                        aspectRatio: '9:16',
+                        duration: beat.durationSec || speechDur,
                         modelId: item.videoModelId || 'grok',
                         deliveryMode: item.deliveryMode || 'caption_talk',
                         generateAudio: item.generateAudio === true,
-                        dialogue:
-                            beat.dialogue || beat.voiceLine || beat.spokenCaption || null,
+                        dialogue: dialogueLine,
                     });
                     const done = await waitForVideo(started.requestId, { timeoutMs: 360000 });
                     beats.push({
@@ -4342,7 +4550,13 @@ function App() {
                     mobileNav={{ content: sideNav, breakpoint: 'md' }}
                 >
                     <div
-                        className={`studio-main${view === 'create' ? ' studio-main--create' : ''}`}
+                        className={`studio-main${
+                            view === 'create'
+                                ? ' studio-main--create'
+                                : view === 'calendar'
+                                  ? ' studio-main--calendar'
+                                  : ''
+                        }`}
                     >
                         {!bootstrapped ? (
                             <VStack gap={3} padding={4} hAlign="center">
@@ -4411,6 +4625,23 @@ function App() {
                                         videoModels={videoModels}
                                         busy={busy}
                                         generatingAll={generatingAll}
+                                        onOpenCalendar={() => setView('calendar')}
+                                        otherQueues={otherQueues}
+                                        activeWorkspaceId={activeWorkspace?.id || getWorkspaceId()}
+                                        onRestoreQueue={handleRestoreQueue}
+                                        onSwitchWorkspace={handleSwitchWorkspace}
+                                    />
+                                )}
+                                {view === 'calendar' && (
+                                    <CalendarView
+                                        key={activeWorkspace?.id || 'calendar'}
+                                        items={store.items || []}
+                                        publishUser={publishUser}
+                                        defaultPlatforms={
+                                            activeWorkspace?.defaultPlatforms || []
+                                        }
+                                        workspaceName={activeWorkspace?.name}
+                                        onToast={handleCalendarToast}
                                     />
                                 )}
                                 {(view === 'tools' ||

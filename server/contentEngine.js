@@ -40,25 +40,45 @@ const CAMERA_MOTIONS = [
 
 /**
  * Multi-angle talk scripts for any Brand OS workspace.
- * EVERY angle has fully unique hook + tension + resolve (never the same brand one-liner for all).
- * body/caption on the card also come from this script — not a shared supporting paragraph.
+ *
+ * Rules for bulk quality:
+ *  - Unique hook + tension + resolve per angle (no copy-paste ending)
+ *  - Do NOT slam primary CTA ("See How It Works") on every resolve
+ *  - Most closes are story payoffs; only a minority are soft CTA
+ *  - body/caption = spoken script only (never shared brand.supporting)
  */
 function buildBrandReelAngles(brand) {
   const name = brand.name || 'this';
   const one = brand.oneLiner || brand.promise || '';
   const cta = brand.primaryCta || brand.ctas?.[0] || 'Learn more';
+  const ctas = (brand.ctas || [cta]).filter(Boolean);
   const features = brand.keyFeatures || [];
   const phrases = brand.buyerPhrases || [];
   const icpList = [...(brand.icp?.primary || []), ...(brand.icp?.secondary || [])].filter(Boolean);
-  const icp0 = icpList[0] || 'people like me';
-  const icp1 = icpList[1] || icp0;
-  const f0 = features[0] || phrases[1] || 'the real work';
-  const f1 = features[1] || phrases[2] || 'clearer next steps';
-  const f2 = features[2] || phrases[3] || 'community';
-  const promise = brand.promise || one || `a clearer path with ${name}`;
+  const icp0 = (icpList[0] || 'people like me').toLowerCase();
+  const icp1 = (icpList[1] || icpList[0] || 'creators').toLowerCase();
+  const f0 = (features[0] || phrases[1] || 'the real work').toLowerCase();
+  const f1 = (features[1] || phrases[2] || 'clearer next steps').toLowerCase();
+  const f2 = (features[2] || phrases[3] || 'community').toLowerCase();
   const price = brand.pricingModel || '';
-  // Short spoken brand beat (not a long marketing paragraph)
-  const spokenBrand = shortSpokenBrand(one || promise, name);
+  const spokenBrand = shortSpokenBrand(one || brand.promise || '', name);
+
+  // Diverse close bank — only a few use hard CTA
+  const close = {
+    truth: `That was enough for me to change how I work.`,
+    brandSoft: `I landed in ${name}. Different energy.`,
+    brandNamed: spokenBrand
+      ? `For me it started with ${spokenBrand}.`
+      : `For me it started with ${name}.`,
+    feature0: `I stopped winging it and leaned into ${f0}.`,
+    feature1: `${f1} was the unlock I did not know I needed.`,
+    community: `I needed ${f2}, not another empty feed.`,
+    openLoop: `If that hits, you already know what you need next.`,
+    peer: `Talk to people who actually do this. Not the hype machine.`,
+    calm: `I got quieter. And clearer.`,
+    softCta: ctas[1] ? `${ctas[1]}.` : `Worth a look when you are ready.`,
+    hardCta: `${cta}.`, // rare — only offer/convert angles
+  };
 
   const angles = [
     {
@@ -68,10 +88,8 @@ function buildBrandReelAngles(brand) {
       headline: 'I kept doing it the hard way',
       dialogueHook: `I kept doing it the hard way.`,
       dialogueTension: `It was costing me nights, focus, and money I did not have to waste.`,
-      dialogueResolve: `I stopped guessing. ${spokenBrand}. ${cta}.`,
-      hookKeyword: 'Hard way',
-      tensionKeyword: 'Nights and money',
-      resolveKeyword: cta,
+      dialogueResolve: close.truth,
+      closeStyle: 'truth',
       scene: 'candid confession, slightly tired but sharp',
     },
     {
@@ -81,75 +99,63 @@ function buildBrandReelAngles(brand) {
       headline: 'Figured it out alone',
       dialogueHook: `For a long time I figured everything out alone.`,
       dialogueTension: `No map. Just trial and error and a lot of second-guessing.`,
-      dialogueResolve: `I do not do this alone anymore. ${spokenBrand}. ${cta}.`,
-      hookKeyword: 'Alone',
-      tensionKeyword: 'No map',
-      resolveKeyword: name,
+      dialogueResolve: close.peer,
+      closeStyle: 'peer',
       scene: 'quiet resolve, peer energy, soft daylight',
     },
     {
       id: 'angle-icp-seen',
       pillar: 'pain',
       priority: 94,
-      headline: `Built for ${icp0}`,
-      dialogueHook: `If you know what it is like as ${icp0.toLowerCase()}, you know this feeling.`,
+      headline: `Built for ${icpList[0] || 'you'}`,
+      dialogueHook: `If you know what it is like as ${icp0}, you know this feeling.`,
       dialogueTension: `Most tools were built for somebody else. Not for how we actually work.`,
-      dialogueResolve: `${name} actually feels built for ${icp0.toLowerCase()}. ${cta}.`,
-      hookKeyword: 'You know',
-      tensionKeyword: "Not for us",
-      resolveKeyword: name,
+      dialogueResolve: close.brandSoft,
+      closeStyle: 'brand_soft',
       scene: 'direct address, knowing smile, mid-speech',
     },
     {
       id: 'angle-icp-alt',
       pillar: 'trust',
       priority: 90,
-      headline: `For ${icp1}`,
+      headline: `For ${icpList[1] || icpList[0] || 'creators'}`,
       dialogueHook: `I do not need another generic platform.`,
-      dialogueTension: `I need people and guidance that understand ${icp1.toLowerCase()}.`,
-      dialogueResolve: `That is why I showed up for ${name}. Real fit. ${cta}.`,
-      hookKeyword: 'Not generic',
-      tensionKeyword: 'Need fit',
-      resolveKeyword: name,
+      dialogueTension: `I need people and guidance that understand ${icp1}.`,
+      dialogueResolve: `Real fit beats a bigger feature list every time.`,
+      closeStyle: 'truth',
       scene: 'confident peer, creative workspace',
     },
     {
       id: 'angle-feature-0',
       pillar: 'education',
       priority: 88,
-      headline: shortClip(f0, 42),
+      headline: shortClip(features[0] || f0, 42),
       dialogueHook: `Here is what actually moved the needle for me.`,
       dialogueTension: `Not hype. ${f0}.`,
-      dialogueResolve: `I get that inside ${name} now. ${cta}.`,
-      hookKeyword: 'What worked',
-      tensionKeyword: shortClip(f0, 22),
-      resolveKeyword: name,
+      dialogueResolve: close.feature0,
+      closeStyle: 'feature',
       scene: 'teaching energy, calm authority',
     },
     {
       id: 'angle-feature-1',
       pillar: 'demo',
       priority: 86,
-      headline: shortClip(f1, 42),
+      headline: shortClip(features[1] || f1, 42),
       dialogueHook: `I used to wing the decisions that mattered.`,
-      dialogueTension: `Then I got ${f1.toLowerCase()}, and the fog lifted.`,
-      dialogueResolve: `Clearer calls. Faster moves. That is ${name}. ${cta}.`,
-      hookKeyword: 'Winged it',
-      tensionKeyword: shortClip(f1, 22),
-      resolveKeyword: cta,
+      dialogueTension: `Then ${f1} showed up, and the fog lifted.`,
+      dialogueResolve: close.feature1,
+      closeStyle: 'feature',
       scene: 'aha moment, brighter expression',
     },
     {
       id: 'angle-community',
       pillar: 'trust',
       priority: 85,
-      headline: shortClip(f2, 42),
+      headline: shortClip(features[2] || f2, 42),
       dialogueHook: `Doing this in isolation will burn you out.`,
-      dialogueTension: `I needed ${f2.toLowerCase()}. Real people. Not empty feeds.`,
-      dialogueResolve: `I found that room in ${name}. Come see it. ${cta}.`,
-      hookKeyword: 'Isolation',
-      tensionKeyword: shortClip(f2, 22),
-      resolveKeyword: name,
+      dialogueTension: `I needed ${f2}. Real people. Not empty feeds.`,
+      dialogueResolve: close.community,
+      closeStyle: 'community',
       scene: 'warm peer energy, collaborative vibe',
     },
     {
@@ -164,11 +170,9 @@ function buildBrandReelAngles(brand) {
         ? `${phrases[1]}. Without the fluff.`
         : `Clarity beats hustle theater every time.`,
       dialogueResolve: phrases[2]
-        ? `${phrases[2]}. That is ${name}. ${cta}.`
-        : `Simple path. Real community. ${name}. ${cta}.`,
-      hookKeyword: shortClip(phrases[0] || 'Clarity', 20),
-      tensionKeyword: shortClip(phrases[1] || 'No fluff', 20),
-      resolveKeyword: name,
+        ? `${phrases[2]}. That landed for me.`
+        : close.calm,
+      closeStyle: 'phrase',
       scene: 'slogan energy, crisp delivery',
     },
     {
@@ -178,26 +182,9 @@ function buildBrandReelAngles(brand) {
       headline: 'Before vs after',
       dialogueHook: `Before: scattered. Guessing. Always behind.`,
       dialogueTension: `I was tired of restarting the same problems every month.`,
-      dialogueResolve: `After: clearer path, better people, ${name}. ${cta}.`,
-      hookKeyword: 'Before',
-      tensionKeyword: 'Restarting',
-      resolveKeyword: 'After',
+      dialogueResolve: `After: quieter days. Cleaner decisions. That shift was real.`,
+      closeStyle: 'story',
       scene: 'contrast energy, heavier then lighter',
-    },
-    {
-      id: 'angle-offer',
-      pillar: 'trust',
-      priority: 82,
-      headline: cta,
-      dialogueHook: `I am not here to sell you a fantasy.`,
-      dialogueTension: price
-        ? `I am here for a real path. ${price}.`
-        : `I am here for a real path, not overnight promises.`,
-      dialogueResolve: `Come look at ${name} with clear eyes. ${cta}.`,
-      hookKeyword: 'No fantasy',
-      tensionKeyword: 'Real path',
-      resolveKeyword: cta,
-      scene: 'honest closer, soft smile, CTA energy',
     },
     {
       id: 'angle-myth',
@@ -206,10 +193,8 @@ function buildBrandReelAngles(brand) {
       headline: 'The myth',
       dialogueHook: `There is a myth that you have to figure this out alone.`,
       dialogueTension: `Or wait until someone discovers you.`,
-      dialogueResolve: `${name} is the opposite of that myth. ${cta}.`,
-      hookKeyword: 'The myth',
-      tensionKeyword: 'Wait around',
-      resolveKeyword: name,
+      dialogueResolve: close.openLoop,
+      closeStyle: 'open_loop',
       scene: 'myth-busting, slightly confrontational then open',
     },
     {
@@ -219,19 +204,45 @@ function buildBrandReelAngles(brand) {
       headline: 'Time tax',
       dialogueHook: `The hidden tax is time. Nights and weekends.`,
       dialogueTension: `I was paying it without even noticing.`,
-      dialogueResolve: `I want my time back. ${spokenBrand}. ${cta}.`,
-      hookKeyword: 'Time tax',
-      tensionKeyword: 'Paying it',
-      resolveKeyword: name,
+      dialogueResolve: `I want those hours back. Full stop.`,
+      closeStyle: 'truth',
       scene: 'late-day light, reflective',
+    },
+    {
+      id: 'angle-offer',
+      pillar: 'trust',
+      priority: 70,
+      headline: 'No fantasy',
+      dialogueHook: `I am not here to sell you a fantasy.`,
+      dialogueTension: price
+        ? `I am here for a real path. ${price}.`
+        : `I am here for a real path, not overnight promises.`,
+      dialogueResolve: close.softCta, // soft secondary CTA, not always primary
+      closeStyle: 'soft_cta',
+      scene: 'honest closer, soft smile',
+    },
+    {
+      id: 'angle-convert',
+      pillar: 'trust',
+      priority: 60,
+      headline: cta,
+      dialogueHook: `If you have been waiting for a sign, this is a practical one.`,
+      dialogueTension: `Not magic. Just a clearer next step.`,
+      dialogueResolve: close.hardCta, // only explicit convert angle uses hard CTA
+      closeStyle: 'hard_cta',
+      scene: 'direct convert, calm confidence',
     },
   ];
 
-  // Attach unique body/caption from the spoken script (for queue UI)
   return angles.map((a) => ({
     ...a,
+    cta, // card/publish CTA can stay brand primary; spoken resolve does not always say it
+    hookKeyword: shortClip(a.dialogueHook, 22),
+    tensionKeyword: shortClip(a.dialogueTension, 22),
+    resolveKeyword: shortClip(a.dialogueResolve, 22),
     body: [a.dialogueHook, a.dialogueTension, a.dialogueResolve].join(' '),
-    caption: [a.dialogueHook, a.dialogueTension, a.dialogueResolve, cta].join('\n\n'),
+    // Caption = spoken story only — do NOT append primary CTA on every reel
+    caption: [a.dialogueHook, a.dialogueTension, a.dialogueResolve].join('\n\n'),
   }));
 }
 
@@ -1206,15 +1217,17 @@ function diversifyIdeaForBatch(idea, index, batchSize = 6) {
 
 /**
  * Alternate spoken lines per creative angle.
- * Same angle family can still sound different across batches.
+ * Resolves almost never hard-append primary CTA — bulk reels must not all end the same.
  */
 function pickScriptVariant(idea, brand, salt = 0) {
   const name = brand.name || 'this';
   const cta = idea.cta || brand.primaryCta || 'Learn more';
+  const ctas = (brand.ctas || [cta]).filter(Boolean);
   const one = brand.oneLiner || brand.promise || '';
   const spokenBrand = shortSpokenBrand(one, name);
   const angle = idea.creativeAngle || idea.id || 'default';
   const variants = SCRIPT_VARIANTS[angle] || null;
+  const ctx = { name, cta, spokenBrand, brand, ctas };
 
   let hook = idea.dialogueHook;
   let tension = idea.dialogueTension;
@@ -1222,19 +1235,23 @@ function pickScriptVariant(idea, brand, salt = 0) {
 
   if (variants?.length) {
     const v = variants[Math.abs(salt) % variants.length];
-    hook = fillScript(v.hook, { name, cta, spokenBrand, brand });
-    tension = fillScript(v.tension, { name, cta, spokenBrand, brand });
-    resolve = fillScript(v.resolve, { name, cta, spokenBrand, brand });
-  } else {
-    // Generic paraphrase bank when angle has no dedicated variants
+    hook = fillScript(v.hook, ctx);
+    tension = fillScript(v.tension, ctx);
+    resolve = fillScript(v.resolve, ctx);
+  } else if (hook || tension || resolve) {
+    // Keep angle seed; only lightly spin if we have no bank
     const bank = GENERIC_SCRIPT_SPINS;
     const spin = bank[Math.abs(salt) % bank.length];
-    hook = spin.hook(hook, { name, cta });
-    tension = spin.tension(tension, { name, cta });
-    resolve = spin.resolve(resolve, { name, cta, spokenBrand });
+    hook = spin.hook(hook, ctx);
+    tension = spin.tension(tension, ctx);
+    resolve = spin.resolve(resolve, ctx);
   }
 
-  // Scrub em dashes from spoken copy
+  // Strip accidental hard CTA spam from spoken resolve (except convert angle)
+  if (angle !== 'angle-convert' && angle !== 'angle-offer') {
+    resolve = stripHardCtaSpam(resolve, brand);
+  }
+
   const scrub = (s) =>
     String(s || '')
       .replace(/[—–]/g, ', ')
@@ -1249,10 +1266,40 @@ function pickScriptVariant(idea, brand, salt = 0) {
     dialogueTension: tension,
     dialogueResolve: resolve,
     body: [hook, tension, resolve].join(' '),
-    caption: [hook, tension, resolve, cta].join('\n\n'),
+    // Spoken caption only — no forced primary CTA footer on every video
+    caption: [hook, tension, resolve].join('\n\n'),
     headline: idea.headline || shortClip(hook, 42),
     scriptVariant: Math.abs(salt) % 8,
+    cta, // metadata for publish UI; not forced into speech
   };
+}
+
+/** Remove trailing "See How It Works." style endings when they were glued on by old templates */
+function stripHardCtaSpam(resolve, brand) {
+  let r = String(resolve || '').trim();
+  const ctas = [
+    brand?.primaryCta,
+    brand?.secondaryCta,
+    ...(brand?.ctas || []),
+    'See How It Works',
+    'Learn more',
+    'Get Started',
+    'Join the Beta',
+  ]
+    .filter(Boolean)
+    .map((c) => String(c).trim());
+
+  for (const c of ctas) {
+    const re = new RegExp(
+      `([.!?\\s]+)?${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[.!]?\\s*$`,
+      'i'
+    );
+    r = r.replace(re, '').trim();
+  }
+  // Collapse double brand dump endings
+  r = r.replace(/\.\s*\./g, '.').trim();
+  if (r && !/[.!?]$/.test(r)) r = `${r}.`;
+  return r;
 }
 
 function fillScript(template, ctx) {
@@ -1288,210 +1335,227 @@ function fillScript(template, ctx) {
     .replace(/\{price\}/g, ctx.brand?.pricingModel || 'a fair path');
 }
 
-/** Per-angle alternate scripts (3+ variants each) */
+/** Per-angle alternate scripts — resolves are story payoffs, not CTA spam */
 const SCRIPT_VARIANTS = {
   'angle-hard-way': [
     {
       hook: 'I kept doing it the hard way.',
       tension: 'It was costing me nights, focus, and money I did not have to waste.',
-      resolve: 'I stopped guessing. {spokenBrand}. {cta}.',
+      resolve: 'I stopped romanticizing the struggle.',
     },
     {
       hook: 'I used to make everything harder than it needed to be.',
       tension: 'Every week felt like starting over with half the information.',
-      resolve: 'I chose a clearer path with {name}. {cta}.',
+      resolve: 'Clearer beats harder. That is all.',
     },
     {
       hook: 'Hard mode was my default for years.',
       tension: 'I thought struggle meant I was serious. It just meant I was stuck.',
-      resolve: '{name} helped me drop the struggle. {cta}.',
+      resolve: 'I dropped the struggle. Quietly.',
     },
   ],
   'angle-alone': [
     {
       hook: 'For a long time I figured everything out alone.',
       tension: 'No map. Just trial and error and a lot of second-guessing.',
-      resolve: 'I do not do this alone anymore. {spokenBrand}. {cta}.',
+      resolve: 'Talk to people who actually do this. Not the hype machine.',
     },
     {
       hook: 'I was my own entire team. That sounds brave. It was lonely.',
       tension: 'Nobody to ask. Nobody to check my thinking.',
-      resolve: 'Now I have a place that actually backs me. {name}. {cta}.',
+      resolve: 'I do not do this alone anymore.',
     },
     {
       hook: 'Solo only works until it does not.',
       tension: 'I hit a wall where advice from random feeds was not enough.',
-      resolve: 'I found real guidance inside {name}. {cta}.',
+      resolve: 'I needed a real room. I found one.',
     },
   ],
   'angle-icp-seen': [
     {
       hook: 'If you know what it is like as {icp}, you know this feeling.',
       tension: 'Most tools were built for somebody else. Not for how we actually work.',
-      resolve: '{name} actually feels built for {icp}. {cta}.',
+      resolve: 'I landed in {name}. Different energy.',
     },
     {
       hook: 'I am tired of products that ignore {icp}.',
       tension: 'The industry talks at us, not with us.',
-      resolve: '{name} talks to how we really move. {cta}.',
+      resolve: 'Being seen changes the whole game.',
     },
     {
       hook: 'Being {icp} should not mean piecing everything together yourself.',
       tension: 'I needed a room that already understood the path.',
-      resolve: 'That room is {name}. {cta}.',
+      resolve: 'That room exists. I am in it.',
     },
   ],
   'angle-icp-alt': [
     {
       hook: 'I do not need another generic platform.',
       tension: 'I need people and guidance that understand {icp2}.',
-      resolve: 'That is why I showed up for {name}. Real fit. {cta}.',
+      resolve: 'Real fit beats a bigger feature list every time.',
     },
     {
       hook: 'Generic advice made me slower, not smarter.',
       tension: 'I needed something specific to {icp2}.',
-      resolve: '{name} is specific. That is the difference. {cta}.',
+      resolve: 'Specific is the whole point.',
     },
     {
       hook: 'I outgrew the one-size-fits-all apps.',
       tension: 'My work as {icp2} needs a different kind of support.',
-      resolve: 'I get that support in {name}. {cta}.',
+      resolve: 'I got that support. Finally.',
     },
   ],
   'angle-feature-0': [
     {
       hook: 'Here is what actually moved the needle for me.',
       tension: 'Not hype. {f0}.',
-      resolve: 'I get that inside {name} now. {cta}.',
+      resolve: 'I stopped winging it and leaned into that.',
     },
     {
       hook: 'I stopped chasing shiny objects.',
       tension: 'I focused on {f0}, and things started clicking.',
-      resolve: '{name} is where I keep that focus. {cta}.',
+      resolve: 'Focus looks boring from the outside. It works.',
     },
     {
       hook: 'The unlock was not more hustle.',
       tension: 'It was {f0}.',
-      resolve: 'That is the point of {name}. {cta}.',
+      resolve: 'That was enough.',
     },
   ],
   'angle-feature-1': [
     {
       hook: 'I used to wing the decisions that mattered.',
-      tension: 'Then I got {f1}, and the fog lifted.',
-      resolve: 'Clearer calls. Faster moves. That is {name}. {cta}.',
+      tension: 'Then {f1} showed up, and the fog lifted.',
+      resolve: 'Clearer calls. Faster moves. That was the shift.',
     },
     {
       hook: 'Big decisions used to keep me up.',
       tension: '{f1} gave me something solid to lean on.',
-      resolve: 'I lean on {name} for that now. {cta}.',
+      resolve: 'I sleep better. Not joking.',
     },
     {
       hook: 'Guesswork is expensive.',
       tension: 'I replaced it with {f1}.',
-      resolve: 'You can too inside {name}. {cta}.',
+      resolve: 'Expensive lessons stopped stacking.',
     },
   ],
   'angle-community': [
     {
       hook: 'Doing this in isolation will burn you out.',
       tension: 'I needed {f2}. Real people. Not empty feeds.',
-      resolve: 'I found that room in {name}. Come see it. {cta}.',
+      resolve: 'I needed community, not another empty feed.',
     },
     {
       hook: 'I thought I could network my way alone.',
       tension: 'Turns out {f2} is the missing layer.',
-      resolve: '{name} is where that layer lives. {cta}.',
+      resolve: 'The missing layer was people.',
     },
     {
       hook: 'Talent is not the bottleneck. Isolation is.',
       tension: 'I needed peers and pros in one place.',
-      resolve: 'That is {name}. {cta}.',
+      resolve: 'I stopped white-knuckling it alone.',
     },
   ],
   'angle-phrase': [
     {
       hook: 'I needed a simpler story for what I do.',
       tension: 'Clarity beats hustle theater every time.',
-      resolve: 'Simple path. Real community. {name}. {cta}.',
+      resolve: 'I got quieter. And clearer.',
     },
     {
       hook: 'My old pitch was messy because my system was messy.',
       tension: 'I cleaned up how I create, consult, and connect.',
-      resolve: 'That cleanup started with {name}. {cta}.',
+      resolve: 'Simple systems sound less sexy. They win.',
     },
     {
       hook: 'I stopped overcomplicating my path.',
       tension: 'One clear motion. Repeat it.',
-      resolve: '{name} keeps me on that motion. {cta}.',
+      resolve: 'Repeat the clear thing. That is the whole hack.',
     },
   ],
   'angle-before-after': [
     {
       hook: 'Before: scattered. Guessing. Always behind.',
       tension: 'I was tired of restarting the same problems every month.',
-      resolve: 'After: clearer path, better people, {name}. {cta}.',
+      resolve: 'After: quieter days. Cleaner decisions. That shift was real.',
     },
     {
       hook: 'Before looked busy. It was not progress.',
       tension: 'I kept spinning the same wheels.',
-      resolve: 'After looks calmer and moves faster. {name}. {cta}.',
+      resolve: 'After looks calmer and moves faster.',
     },
     {
       hook: 'I can show you before and after in one sentence.',
       tension: 'Before: alone and loud. After: supported and clear.',
-      resolve: 'The after is {name}. {cta}.',
-    },
-  ],
-  'angle-offer': [
-    {
-      hook: 'I am not here to sell you a fantasy.',
-      tension: 'I am here for a real path. {price}.',
-      resolve: 'Come look at {name} with clear eyes. {cta}.',
-    },
-    {
-      hook: 'No overnight promises. I mean that.',
-      tension: 'Just a practical next step that respects your craft.',
-      resolve: '{name} is that step. {cta}.',
-    },
-    {
-      hook: 'If you want magic tricks, keep scrolling.',
-      tension: 'If you want a real system, stay with me.',
-      resolve: 'Start with {name}. {cta}.',
+      resolve: 'Supported and clear wins.',
     },
   ],
   'angle-myth': [
     {
       hook: 'There is a myth that you have to figure this out alone.',
       tension: 'Or wait until someone discovers you.',
-      resolve: '{name} is the opposite of that myth. {cta}.',
+      resolve: 'If that hits, you already know what you need next.',
     },
     {
       hook: 'Nobody is coming to discover you while you stay invisible and isolated.',
       tension: 'The myth keeps people waiting instead of building.',
-      resolve: 'I build in public with {name}. {cta}.',
+      resolve: 'I stopped waiting. I started building with people.',
     },
     {
       hook: 'The lone genius story is a trap.',
       tension: 'Real careers are built with information and people.',
-      resolve: '{name} is both. {cta}.',
+      resolve: 'Information and people. That is it.',
     },
   ],
   'angle-time': [
     {
       hook: 'The hidden tax is time. Nights and weekends.',
       tension: 'I was paying it without even noticing.',
-      resolve: 'I want my time back. {spokenBrand}. {cta}.',
+      resolve: 'I want those hours back. Full stop.',
     },
     {
       hook: 'I ran out of hours before I ran out of ambition.',
       tension: 'Something had to get simpler.',
-      resolve: '{name} gave me hours back. {cta}.',
+      resolve: 'Simpler gave me my nights back.',
     },
     {
       hook: 'Time is the budget nobody tracks until it is gone.',
       tension: 'I started tracking mine. It was ugly.',
-      resolve: 'Now I spend it wiser with {name}. {cta}.',
+      resolve: 'I spend it wiser now.',
+    },
+  ],
+  'angle-offer': [
+    {
+      hook: 'I am not here to sell you a fantasy.',
+      tension: 'I am here for a real path. {price}.',
+      resolve: 'Worth a look when you are ready.',
+    },
+    {
+      hook: 'No overnight promises. I mean that.',
+      tension: 'Just a practical next step that respects your craft.',
+      resolve: 'Practical beats theatrical.',
+    },
+    {
+      hook: 'If you want magic tricks, keep scrolling.',
+      tension: 'If you want a real system, stay with me.',
+      resolve: 'Real systems do not need a drumroll.',
+    },
+  ],
+  'angle-convert': [
+    {
+      hook: 'If you have been waiting for a sign, this is a practical one.',
+      tension: 'Not magic. Just a clearer next step.',
+      resolve: '{cta}.',
+    },
+    {
+      hook: 'You already know if this is for you.',
+      tension: 'I am not going to hard-sell you a dream.',
+      resolve: '{cta}.',
+    },
+    {
+      hook: 'One clear next step beats twenty tabs of research.',
+      tension: 'I took mine.',
+      resolve: '{cta}.',
     },
   ],
 };
@@ -1500,17 +1564,17 @@ const GENERIC_SCRIPT_SPINS = [
   {
     hook: (h) => h,
     tension: (t) => t,
-    resolve: (r) => r,
+    resolve: (r) => stripHardCtaSpam(r, {}),
   },
   {
-    hook: (h) => (h.endsWith('.') ? h : `${h}.`),
-    tension: (t) => `And it kept stacking up. ${t}`,
-    resolve: (r, { name, cta }) => r || `That is when ${name} made sense. ${cta}.`,
+    hook: (h) => (h && h.endsWith('.') ? h : `${h || ''}.`.trim()),
+    tension: (t) => (t ? `And it kept stacking up. ${t}` : t),
+    resolve: (r) => r || 'That was enough for me to change how I work.',
   },
   {
-    hook: (h) => `Real talk. ${h}`,
+    hook: (h) => (h ? `Real talk. ${h}` : h),
     tension: (t) => t,
-    resolve: (r, { name, cta }) => `So I chose ${name}. ${cta}.`,
+    resolve: (r) => r || 'I got quieter. And clearer.',
   },
 ];
 

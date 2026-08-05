@@ -65,16 +65,44 @@ Native UI ads (model-painted type) are a **separate lane** from Brand OS plate +
 
 ## Multi-workspace story captions (platform rule)
 
-Spoken captions are **workspace-agnostic**. Same pipeline for Taskiz, WEPOC, and every new client.
+Spoken captions are **workspace-agnostic**. Same pipeline for every client.
 
 | Rule | Behavior |
 |---|---|
 | Whisper ASR succeeds | Burn **spoken words** karaoke (always). Never gate on style `titleStyle`. |
 | ASR fails / silent plate | Fall back to **full beat dialogue**, not flow keywords |
 | Never on speech reels | Keyword title cards like “The old way” / “The cost” |
-| Highlight color | Active Brand OS `colors.brand` (e.g. Taskiz purple, WEPOC mint) |
-| Brand OS defaults | `defaultUseAsrCaptions: true`, `defaultDeliveryMode: caption_talk` |
+| Highlight color | Active Brand OS `colors.brand` |
+| Brand OS defaults | `PLATFORM_BRAND_DEFAULTS` in `brandLoader.js` (ASR, caption_talk, organic chrome, documentary default style) |
 | Opt-out | Brand or item `useAsrCaptions: false` only |
 
 Code: `storyAssembler` (ASR) → `graphicsCompose.buildStoryGraphics` (burn).  
 Do not reintroduce style packs that skip ASR when `asrKaraokeWindows` is present.
+
+## Multi-workspace story reels (platform rule)
+
+Bulk story reels must feel like **different creatives**, not one message × N faces.
+
+| Rule | Behavior |
+|---|---|
+| Scripts | Distinct hook/tension/resolve per item; rotate across batches (`contentEngine`) |
+| Endings | Do **not** slam primary CTA on every resolve; hard CTA only on rare convert angles |
+| Cast | Unique person/room per reel; continuity only **within** 3 beats (`brandCastVariant`) |
+| Stills | Always **9:16** for reels — API forces ratio + `stillReframe` pad to 1080×1920 |
+| UI preview | `object-fit: contain` on reel thumbs — never CSS-crop faces |
+| Silence | Beat duration from dialogue length; assemble trims trailing silence |
+| Regen script | `/api/story/regen-script` — new lines, keeps stills; all workspaces |
+| Regen stills | Images only — **must not** rewrite script |
+| Video model | Card uses Selector dropdown; default from Brand OS `defaultVideoModelId` |
+
+Taskiz may keep a handcrafted idea bank (`TASKIZ_IDEA_POOL`); **pipelines** (captions, reframe, regen, diversify, chrome) stay platform-global.
+
+## Platform chrome (Glampire OS)
+
+- Logo / favicon: `public/glampire-mark.png`, `public/favicon.*` — studio brand, not client Brand OS
+- Ads compose: `adLayout` + `adCompose` + Brand OS colors/CTA/logo only
+- Never hardcode one client’s purple, CTA, or logo path into layout math or video chrome
+- New workspaces inherit `PLATFORM_BRAND_DEFAULTS` (ASR, caption_talk, organic chrome, Grok default model)
+- Neutral color fallback when Brand OS is incomplete: `#5B5BD6` (not Taskiz violet)
+- Publish filenames / titles use studio/brand name — never a single-client slug
+- Taskiz may keep `TASKIZ_IDEA_POOL` + ASR “task/is” mishear fix; all **pipelines** stay workspace-agnostic

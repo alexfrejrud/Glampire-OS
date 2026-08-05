@@ -108,7 +108,7 @@ function normalizeVoice(v) {
 }
 
 /**
- * Score a voice for Taskiz story reels — peer talking to contractors, not ad VO.
+ * Score a voice for story reels — peer talking to ICP, not ad VO.
  * profile: peer_male | peer_female | narrator
  */
 export function scoreVoiceForProfile(voice, profile = 'peer_male') {
@@ -134,7 +134,7 @@ export function scoreVoiceForProfile(voice, profile = 'peer_male') {
         if (gender === 'female') score -= 8; // still usable
     }
 
-    // Accent — US / american preferred for Taskiz ICP
+    // Accent — US / american preferred default (override via Brand OS voice prefs later)
     const accent = voice.labels?.accent || '';
     if (/american|us|usa|neutral/.test(accent) || /american|us english/.test(blob)) score += 18;
     if (/british|australian|irish|scottish|indian|spanish/.test(accent)) score -= 10;

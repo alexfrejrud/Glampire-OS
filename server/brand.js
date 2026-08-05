@@ -150,8 +150,19 @@ export function buildImagePrompt(idea, { styleId } = {}) {
       ugcAuth ? `UGC authenticity: ${ugcAuth}.` : '',
       `Composition: ${b.compositionNotes}`,
       `Color grade: ${idea.styleColorGrade || style?.colorGrade || `natural daylight with subtle brand-inspired tones (${c.brand || '#111111'}, deep ${c.dark || '#141414'}, clean neutrals)`}. Do not paint logos or color blocks as graphics.`,
-      `Aspect: ${formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1'} framing.`,
-      `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}. Never clone the same face, hoodie, or room as other creatives in this campaign.`,
+      (() => {
+        const ar = formats[idea.format]?.aspectRatio || idea.aspectRatio || '1:1';
+        if (ar === '9:16' || idea.format === 'reel' || idea.format === 'story') {
+          return [
+            `Aspect: STRICT vertical 9:16 phone portrait only (1080x1920, taller than wide). Never landscape, never 16:9, never horizontal banner, never square.`,
+            `Portrait framing lock (critical): TALKING-HEAD medium close-up — face fills 40-55% of frame height (subject LARGE, close to camera), subject centered, FULL head visible with forehead and chin inside the frame (no cut-off face/hair), eyes in upper third, leave lower third clean for captions, both shoulders readable when possible.`,
+            `FORBIDDEN compositions: wide office establish; person small/far away; desk or white table filling bottom half of frame; monitors/laptop as hero; empty wall dominating; face clipped by edges.`,
+            `Camera orientation: phone held upright / vertical selfie or vertical interview distance — not a rotated landscape photo, not a room tour.`,
+          ].join(' ');
+        }
+        return `Aspect: ${ar} framing. Keep subject fully in frame, no accidental edge crop of face.`;
+      })(),
+      `Strict negatives: ${b.imageNegatives}${styleNeg ? `; ${styleNeg}` : ''}. Never clone the same face, hoodie, or room as other creatives in this campaign. No landscape 16:9 crops for reels. No cut-off forehead/chin. No face clipped by frame edge. No horizontal phone orientation.`,
       `Output must be a clean photo plate only — typography and logo will be added later in HyperFrames / design overlay.`,
       sid ? `Style id: ${sid}.` : '',
     ]
@@ -231,8 +242,10 @@ export function buildVideoPrompt(idea, { styleId, beatRole } = {}) {
           ? `DIALOGUE (speak this line clearly in first person as the on-camera subject): "${dialogue}" Lip sync + native speech audio.`
           : `The subject is mid-conversation to camera (natural mouth movement, expressive face). Caption story line: "${dialogue}". Perfect lip-sync audio not required.`,
         'Eye contact with the lens. Peer-to-peer energy — not a radio announcer.',
+        'PACING: finish the spoken line and end the clip within ~0.25s — no long silent freeze after talking.',
+        'FRAME: vertical 9:16 only, never landscape 16:9.',
         'No text, logos, captions, title cards, or UI burned into the video.',
-        `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No silent staring at phone as the main action.`,
+        `Negatives: ${b.imageNegatives}. ${cast.negativesExtra}. No silent staring at phone as the main action. No long mute hold at end.`,
       ]
         .filter(Boolean)
         .join(' ')

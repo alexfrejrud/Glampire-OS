@@ -63,6 +63,24 @@ import {
   getUploadStatus,
 } from './uploadPost.js';
 import {
+  loadCalendar,
+  saveCalendar,
+  updateSettings as updateCalendarSettings,
+  listSlotsInRange,
+  upsertSlot,
+  deleteSlot,
+  deleteSlots,
+  rescheduleSlot,
+  autoPlan,
+  fireSlot,
+  fireSlots,
+  refreshSlotStatus,
+  calendarStats,
+  preflightSlot,
+  normalizeCreativeSnapshot,
+} from './calendar.js';
+import { loadQueue, saveQueue, mergeQueues } from './queueStore.js';
+import {
   REF_ROLES,
   listRefs,
   addRef,
@@ -86,6 +104,7 @@ import {
 import { listBenchmarks, getBenchmark, SCORECARD_RUBRIC } from './benchmarks.js';
 import { listFlows, getFlow } from './flows.js';
 import { assembleStoryReel, resolveRenderPath } from './storyAssembler.js';
+import { ensurePortraitStill, resolveStillPath } from './stillReframe.js';
 import {
   listCreativeFormulas,
   buildCastSheet,
@@ -446,6 +465,13 @@ app.get('/api/renders', (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+/** Serve reframed still plates (exact 9:16 jpgs) */
+app.get('/api/renders/stills/:fileName', (req, res) => {
+  const filePath = resolveStillPath(req.params.fileName);
+  if (!filePath) return res.status(404).json({ error: 'Not found' });
+  res.type('jpg').sendFile(filePath);
 });
 
 /** Serve assembled story renders (?download=1 → attachment for Save As) */
@@ -971,14 +997,22 @@ app.post('/api/generate/image', async (req, res) => {
     } = req.body || {};
     if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
-    const ratio = aspectRatio || aspectForFormat(format);
+    // Story reels / vertical always 9:16 — never trust a stray 16:9 from the client
+    const isVertical = format === 'reel' || format === 'story';
+    const ratio = isVertical ? '9:16' : aspectRatio || aspectForFormat(format);
     const refs = [];
     if (referenceImage) refs.push(referenceImage);
     if (Array.isArray(referenceImages)) refs.push(...referenceImages);
 
+    // Reinforce portrait + composition so models don't ignore aspect_ratio or clip faces
+    let finalPrompt = String(prompt || '');
+    if (isVertical || ratio === '9:16') {
+      finalPrompt = `${finalPrompt} STRICT FRAME: vertical portrait 9:16 only (1080x1920), tall phone frame, NOT landscape, NOT 16:9, NOT horizontal, NOT square. COMPOSITION LOCK — TALKING HEAD: medium close-up only; face fills 40-55% of frame height (subject LARGE, close to camera); FULL head inside frame (forehead + chin + hair not cut off); eyes in the upper third; both shoulders when possible; lower third empty/clean for captions; background soft bokeh. FORBIDDEN: wide establishing office shot; tiny person far from camera; desk/table filling bottom half; laptop/monitors as heroes; landscape phone; face cut by edges; empty wall dominating. Upright phone selfie / interview distance only.`;
+    }
+
     // When matchReference is true but no refs provided, still pure generate
     const result = await generateImage({
-      prompt,
+      prompt: finalPrompt,
       aspectRatio: ratio,
       n,
       referenceImage: matchReference || refs.length ? refs[0] || null : null,
@@ -993,12 +1027,33 @@ app.post('/api/generate/image', async (req, res) => {
       provider: 'xai',
       workspaceId: getActiveWorkspaceId(),
     });
+
+    // Reels: always reframe to exact 1080x1920 (pad, never crop) so i2v/UI never face-cut
+    let imageUrl = result.urls[0];
+    let imageUrls = result.urls;
+    let reframed = false;
+    if (isVertical && imageUrl) {
+      try {
+        const framed = await ensurePortraitStill(imageUrl, {
+          w: 1080,
+          h: 1920,
+          id: Date.now().toString(36),
+        });
+        imageUrl = framed.publicUrl;
+        imageUrls = [framed.publicUrl];
+        reframed = true;
+      } catch (e) {
+        console.warn('[image] portrait reframe failed, using raw URL:', e.message);
+      }
+    }
+
     res.json({
-      imageUrl: result.urls[0],
-      imageUrls: result.urls,
+      imageUrl,
+      imageUrls,
       model: result.model,
       mode: result.mode || 'generate',
-      aspectRatio: ratio,
+      aspectRatio: isVertical ? '9:16' : result.aspectRatio || ratio,
+      reframed,
     });
   } catch (err) {
     console.error('[image]', err.message);
@@ -1218,6 +1273,286 @@ app.get('/api/upload-post/status/:requestId', async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message, details: err.details });
+  }
+});
+
+/* ───── Creative queue (server backup — survives browser localStorage loss) ───── */
+
+app.get('/api/queue', (_req, res) => {
+  try {
+    const queue = loadQueue();
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      ...queue,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Peek queue sizes for every workspace (recovery UI) */
+app.get('/api/queue/all', (_req, res) => {
+  try {
+    const list = listWorkspaces().map((w) => {
+      const q = loadQueue(w.id);
+      return {
+        workspaceId: w.id,
+        name: w.name,
+        itemCount: q.items?.length || 0,
+        packLabel: q.packLabel || null,
+        updatedAt: q.updatedAt || null,
+      };
+    });
+    res.json({ ok: true, queues: list });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/queue', (req, res) => {
+  try {
+    const body = req.body || {};
+    const saved = saveQueue(body);
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      itemCount: saved.items.length,
+      updatedAt: saved.updatedAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Merge client local queue with server; returns winner and persists if server was empty/stale */
+app.post('/api/queue/sync', (req, res) => {
+  try {
+    const local = req.body || {};
+    const server = loadQueue();
+    const merged = mergeQueues(local, server);
+    // Persist merged if it has items (and may update server from local)
+    if ((merged.items || []).length > 0) {
+      saveQueue(merged);
+    }
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      ...merged,
+      itemCount: merged.items?.length || 0,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ───── Studio Calendar (Upload-Post send engine) ───── */
+
+app.get('/api/calendar', (req, res) => {
+  try {
+    const { from, to } = req.query || {};
+    const doc = listSlotsInRange({ from, to });
+    const stats = calendarStats();
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      settings: doc.settings,
+      slots: doc.slots,
+      updatedAt: doc.updatedAt,
+      lastAutoPlan: doc.lastAutoPlan,
+      stats: stats.counts,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/calendar/stats', (_req, res) => {
+  try {
+    res.json({ ok: true, workspaceId: getActiveWorkspaceId(), ...calendarStats() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/calendar/settings', (req, res) => {
+  try {
+    const doc = updateCalendarSettings(req.body || {});
+    res.json({ ok: true, settings: doc.settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/calendar/slots', (req, res) => {
+  try {
+    const body = req.body || {};
+    const slot = upsertSlot(body);
+    res.status(201).json({ ok: true, slot });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/calendar/slots/:id', (req, res) => {
+  try {
+    const slot = upsertSlot({ ...req.body, id: req.params.id });
+    res.json({ ok: true, slot });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/calendar/slots/:id/reschedule', (req, res) => {
+  try {
+    const { scheduledAt } = req.body || {};
+    if (!scheduledAt) return res.status(400).json({ error: 'scheduledAt required' });
+    const slot = rescheduleSlot(req.params.id, scheduledAt);
+    res.json({ ok: true, slot });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/calendar/slots/:id', (req, res) => {
+  try {
+    deleteSlot(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/calendar/slots/delete-many', (req, res) => {
+  try {
+    const ids = req.body?.ids || [];
+    const out = deleteSlots(ids);
+    res.json({ ok: true, ...out });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/calendar/preflight', (req, res) => {
+  try {
+    const body = req.body || {};
+    const snap = body.creative
+      ? { ...normalizeCreativeSnapshot(body.creative), ...body }
+      : body;
+    const doc = loadCalendar();
+    const result = preflightSlot(snap, doc.settings);
+    res.json({ ok: true, preflight: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Auto-plan approved creatives onto the calendar as drafts.
+ * body: { creatives[], horizon, postsPerDay, everyNDays, formats, mix, weekends, emptyOnly, platforms }
+ */
+app.post('/api/calendar/auto-plan', (req, res) => {
+  try {
+    const body = req.body || {};
+    const result = autoPlan({
+      creatives: body.creatives || [],
+      horizon: body.horizon || 'week',
+      postsPerDay: body.postsPerDay ?? 2,
+      everyNDays: body.everyNDays ?? 1,
+      startDate: body.startDate || null,
+      formats: body.formats || null,
+      mix: body.mix || 'balanced',
+      weekends: body.weekends || null,
+      emptyOnly: body.emptyOnly !== false,
+      platformsOverride: body.platforms || null,
+    });
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      created: result.created,
+      message: result.message,
+      slots: result.doc.slots,
+      lastAutoPlan: result.doc.lastAutoPlan,
+      settings: result.doc.settings,
+    });
+  } catch (err) {
+    console.error('[calendar auto-plan]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Fire one slot via Upload-Post: mode = schedule | now | queue */
+app.post('/api/calendar/slots/:id/fire', async (req, res) => {
+  try {
+    const mode = req.body?.mode || 'schedule';
+    const user = req.body?.user;
+    const { slot, data } = await fireSlot(req.params.id, { mode, user });
+    res.json({ ok: true, slot, data });
+  } catch (err) {
+    console.error('[calendar fire]', err.message);
+    res.status(err.status || 500).json({
+      error: err.message,
+      preflight: err.preflight,
+      details: err.details,
+    });
+  }
+});
+
+/** Bulk fire: { ids[], mode, user } */
+app.post('/api/calendar/fire-batch', async (req, res) => {
+  try {
+    const ids = req.body?.ids || [];
+    if (!ids.length) return res.status(400).json({ error: 'ids[] required' });
+    const out = await fireSlots(ids, {
+      mode: req.body?.mode || 'schedule',
+      user: req.body?.user,
+    });
+    res.json({
+      ok: true,
+      results: out.results,
+      slots: out.calendar.slots,
+      stats: calendarStats().counts,
+    });
+  } catch (err) {
+    console.error('[calendar fire-batch]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/calendar/slots/:id/status', async (req, res) => {
+  try {
+    const out = await refreshSlotStatus(req.params.id);
+    res.json({ ok: true, ...out });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/calendar/undo-auto-plan', (req, res) => {
+  try {
+    const doc = loadCalendar();
+    const last = doc.lastAutoPlan;
+    if (!last?.at) {
+      return res.status(400).json({ error: 'Nothing to undo' });
+    }
+    const cutoff = new Date(last.at).getTime();
+    const before = doc.slots.length;
+    // Remove draft slots from the last auto-plan window (not yet sent to Upload-Post)
+    doc.slots = doc.slots.filter((s) => {
+      if (s.source !== 'auto-plan' || s.status !== 'draft') return true;
+      const t = new Date(s.createdAt || 0).getTime();
+      return Math.abs(t - cutoff) >= 120_000;
+    });
+    doc.lastAutoPlan = null;
+    saveCalendar(doc);
+    res.json({
+      ok: true,
+      removed: before - doc.slots.length,
+      slots: doc.slots,
+      message: 'Auto-plan drafts removed',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
