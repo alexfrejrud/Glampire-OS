@@ -51,6 +51,21 @@
     height: 100%;
   }
 
+  /* SideNav always expanded — no collapse control (it stuck/broke layout) */
+  .studio-root .studio-sidenav,
+  .studio-root [data-theme-component='side-nav'] {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+    flex-shrink: 0;
+  }
+
+  /* Hide SideNav collapse control only (not other app expanders) */
+  .studio-root .studio-sidenav [data-testid='side-nav-collapse-button'],
+  .studio-root [data-theme-component='side-nav'] [data-testid='side-nav-collapse-button'] {
+    display: none !important;
+  }
+
   /* Fill AppShell content so create can truly center in the remaining viewport */
   .studio-root [data-appshell-content],
   .studio-root main,
@@ -1728,5 +1743,184 @@
 
   .cal-empty-only {
     margin-bottom: 12px;
+  }
+
+  /* ═══════════ Settings modal (account-style panel) ═══════════ */
+
+  .settings-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: color-mix(in srgb, #000 55%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .settings-modal {
+    width: min(840px, 100%);
+    height: min(640px, 92vh);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--color-background-surface, #1b1b1b);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 24px 80px color-mix(in srgb, #000 45%, transparent);
+  }
+
+  @media (max-width: 700px) {
+    .settings-modal {
+      grid-template-columns: 1fr;
+      height: min(90vh, 720px);
+    }
+    .settings-nav {
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-height: 120px;
+      overflow: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+  }
+
+  .settings-nav {
+    background: color-mix(in srgb, var(--color-background-body) 60%, var(--color-background-surface));
+    border-right: 1px solid var(--color-border);
+    padding: 16px 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .settings-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .settings-nav-label {
+    padding: 4px 10px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .settings-nav-item {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+
+  .settings-nav-item:hover {
+    background: var(--color-accent-muted);
+  }
+
+  .settings-nav-item.is-active {
+    background: var(--color-accent-muted);
+    font-weight: 600;
+  }
+
+  .settings-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--color-background-surface);
+  }
+
+  .settings-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .settings-panel-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .settings-row.compact {
+    padding: 10px 0;
+  }
+
+  .settings-row:last-child {
+    border-bottom: 0;
+  }
+
+  .settings-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--color-accent-muted);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings-channel-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .settings-channel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+  }
+
+  .settings-channel-chip.is-on {
+    color: var(--color-text-primary);
+    border-color: color-mix(in srgb, var(--color-text-primary) 40%, var(--color-border));
+    background: var(--color-accent-muted);
+  }
+
+  .settings-usage-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .settings-panel-body code {
+    font-size: 11px;
   }
 }

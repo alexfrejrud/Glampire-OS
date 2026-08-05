@@ -334,7 +334,6 @@ async function bakeCaptionTrack({ layers, durationSec, workDir }) {
     if (!sorted.length) return null;
 
     const total = Math.max(0.5, Number(durationSec) || 15);
-    const segs = [];
 
     // 1×1 transparent PNG (reusable gap filler)
     const clearPng = path.join(dir, 'clear.png');
@@ -345,45 +344,47 @@ async function bakeCaptionTrack({ layers, durationSec, workDir }) {
         );
     }
 
+    // Build segment plan first (gaps + word plates), then encode in parallel.
+    // Sequential qtrle of 30–50 full-frame plates was hanging assemble for minutes.
+    const plan = [];
     let cursor = 0;
-    const pushGap = async (from, to) => {
+    const pushGapPlan = (from, to) => {
         const d = to - from;
         if (d < 0.02) return;
-        const gapPath = path.join(dir, `gap-${segs.length}.mov`);
-        await run('ffmpeg', [
-            '-y',
-            '-loop',
-            '1',
-            '-t',
-            d.toFixed(3),
-            '-i',
-            clearPng,
-            '-vf',
-            'format=rgba,fps=30',
-            '-c:v',
-            'qtrle',
-            '-an',
-            gapPath,
-        ]);
-        segs.push({ path: gapPath, dur: d });
+        plan.push({ kind: 'gap', start: from, dur: d, index: plan.length });
+        cursor = to;
     };
 
     for (let i = 0; i < sorted.length; i++) {
         const layer = sorted[i];
         const start = Math.max(0, Number(layer.start) || 0);
         const end = Math.max(start + 0.04, Number(layer.end) || start + 0.04);
-        if (start > cursor + 0.02) await pushGap(cursor, start);
+        if (start > cursor + 0.02) pushGapPlan(cursor, start);
 
         const dur = Math.max(0.04, end - Math.max(cursor, start));
-        const segPath = path.join(dir, `seg-${i}.mov`);
+        plan.push({
+            kind: 'plate',
+            start: Math.max(cursor, start),
+            dur,
+            index: plan.length,
+            png: layer.path,
+        });
+        cursor = Math.max(cursor, start) + dur;
+    }
+    if (cursor < total - 0.02) pushGapPlan(cursor, total);
+
+    const encodeOne = async (seg) => {
+        const segPath = path.join(dir, `${seg.kind}-${seg.index}.mov`);
+        const src = seg.kind === 'gap' ? clearPng : seg.png;
+        // qtrle keeps alpha (libx264 cannot). Parallelized below for speed.
         await run('ffmpeg', [
             '-y',
             '-loop',
             '1',
             '-t',
-            dur.toFixed(3),
+            seg.dur.toFixed(3),
             '-i',
-            layer.path,
+            src,
             '-vf',
             'format=rgba,fps=30',
             '-c:v',
@@ -391,11 +392,22 @@ async function bakeCaptionTrack({ layers, durationSec, workDir }) {
             '-an',
             segPath,
         ]);
-        segs.push({ path: segPath, dur });
-        cursor = Math.max(cursor, start) + dur;
-    }
+        return { path: segPath, dur: seg.dur };
+    };
 
-    if (cursor < total - 0.02) await pushGap(cursor, total);
+    // Parallel encode (cap concurrency so we don't fork-bomb)
+    const CONCURRENCY = 4;
+    const segs = new Array(plan.length);
+    let next = 0;
+    async function worker() {
+        while (next < plan.length) {
+            const i = next++;
+            segs[i] = await encodeOne(plan[i]);
+        }
+    }
+    await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, plan.length) }, () => worker())
+    );
 
     // All paths relative inside dir; run ffmpeg with cwd=dir
     const listFile = path.join(dir, 'concat.txt');
@@ -487,10 +499,13 @@ export function scheduleWords(text, t0, durationSec, opts = {}) {
 
 /**
  * Karaoke caption — FULL sentence always on screen (nothing "missing").
- *  - already spoken  → brand purple
+ * Classic studio look (restored):
+ *  - already spoken  → Brand OS colors.brand (highlight trail)
  *  - current word    → pure white + heavier
- *  - not yet spoken  → soft white (still readable, not a black pill)
- * No container/rect — stroke + drop shadow only.
+ *  - not yet spoken  → soft gray
+ *
+ * Brand fill is drawn twice (color underlay + black stroke top) so mint/purple
+ * survives yuv420p chroma subsampling on thin glyphs.
  */
 function svgWordWindow({
     words,
@@ -503,7 +518,7 @@ function svgWordWindow({
     if (!list.length) return svgReelCaptionStatic({ text: '', role });
 
     const n = list.length;
-    const fontSize = n >= 14 ? 40 : n >= 10 ? 46 : n >= 7 ? 50 : 56;
+    const fontSize = n >= 14 ? 42 : n >= 10 ? 48 : n >= 7 ? 52 : 58;
     const lineH = Math.round(fontSize * 1.22);
     // Lower third (~80% height) — clear of face/chin, Reels-safe
     const firstLineY = Math.round(H * 0.78);
@@ -526,56 +541,80 @@ function svgWordWindow({
     }
     if (cur.length) lines.push(cur);
 
+    // solid hex only — resvg mishandles rgba() on tspan fills
+    const brand = brandPurple || '#5B5BD6';
     const fillActive = '#FFFFFF';
-    const fillTrail = brandPurple || '#5B5BD6';
-    // solid hex only — resvg mishandles rgba() on tspan fills (renders black)
-    const fillUpcoming = '#D0D0D4';
+    const fillTrail = brand; // spoken trail = brand highlight (platform rule)
+    const fillUpcoming = '#C8C8CC';
+
+    const wordMeta = (i) => {
+        const isActive = i === activeIndex;
+        const isPast = i < activeIndex;
+        if (mode === 'cumulative' && i > activeIndex) return null;
+        if (isActive) return { fill: fillActive, weight: 800, brandUnder: true };
+        if (isPast || (mode === 'cumulative' && !isActive))
+            return { fill: fillTrail, weight: 750, brandUnder: true };
+        return { fill: fillUpcoming, weight: 650, brandUnder: false };
+    };
+
+    const buildTopTspans = (lineWords) =>
+        lineWords
+            .map(({ w, i }, j) => {
+                const meta = wordMeta(i);
+                if (!meta) return '';
+                const gap = j === 0 ? '' : ' ';
+                return `${gap}<tspan fill="${meta.fill}" font-weight="${meta.weight}">${escapeXml(w)}</tspan>`;
+            })
+            .join('');
+
+    // Same word spacing as top layer; only past/active get solid brand mass.
+    // Upcoming uses opacity 0 so layout matches but no brand paint.
+    const buildUnderTspans = (lineWords) =>
+        lineWords
+            .map(({ w, i }, j) => {
+                const meta = wordMeta(i);
+                if (!meta) return '';
+                const gap = j === 0 ? '' : ' ';
+                if (!meta.brandUnder) {
+                    return `${gap}<tspan fill="${brand}" fill-opacity="0" stroke-opacity="0" font-weight="${meta.weight}">${escapeXml(w)}</tspan>`;
+                }
+                return `${gap}<tspan fill="${brand}" font-weight="${meta.weight}">${escapeXml(w)}</tspan>`;
+            })
+            .join('');
 
     const lineSvgs = lines
         .map((lineWords, li) => {
             const y = firstLineY + li * lineH;
-            // No pill/container — stroke + shadow only
-            const parts = lineWords
-                .map(({ w, i }, j) => {
-                    const isActive = i === activeIndex;
-                    const isPast = i < activeIndex;
-                    let fill = fillUpcoming;
-                    let weight = 650;
-                    if (mode === 'cumulative') {
-                        // old style: only show up to active
-                        if (i > activeIndex) return '';
-                        fill = isActive ? fillActive : fillTrail;
-                        weight = isActive ? 800 : 700;
-                    } else {
-                        // karaoke: full line always visible
-                        if (isActive) {
-                            fill = fillActive;
-                            weight = 800;
-                        } else if (isPast) {
-                            fill = fillTrail;
-                            weight = 700;
-                        } else {
-                            fill = fillUpcoming;
-                            weight = 650;
-                        }
-                    }
-                    const gap = j === 0 ? '' : ' ';
-                    return `${gap}<tspan fill="${fill}" font-weight="${weight}">${escapeXml(w)}</tspan>`;
-                })
-                .join('');
-            return `<text font-family="${FONT_FAMILY}" font-size="${fontSize}" font-weight="700"
+            const under = buildUnderTspans(lineWords);
+            const top = buildTopTspans(lineWords);
+            const hasBrand = lineWords.some(({ i }) => wordMeta(i)?.brandUnder);
+            // Layer 1: fat brand underlay — color survives yuv420p
+            // Layer 2: black stroke + white/brand/gray fills for readability
+            const underLayer = hasBrand
+                ? `
+  <text font-family="${FONT_FAMILY}" font-size="${fontSize}" font-weight="800"
         x="540" y="${y}" text-anchor="middle"
-        stroke="#000000" stroke-width="15" stroke-linejoin="round" stroke-opacity="0.9"
+        stroke="${brand}" stroke-width="14" stroke-linejoin="round"
         paint-order="stroke fill" letter-spacing="-0.2"
-        fill="#FFFFFF" filter="url(#capSoft)">${parts}</text>`;
+        filter="url(#capBrandGlow)">${under}</text>`
+                : '';
+            return `${underLayer}
+  <text font-family="${FONT_FAMILY}" font-size="${fontSize}" font-weight="700"
+        x="540" y="${y}" text-anchor="middle"
+        stroke="#000000" stroke-width="11" stroke-linejoin="round" stroke-opacity="0.92"
+        paint-order="stroke fill" letter-spacing="-0.2"
+        filter="url(#capSoft)">${top}</text>`;
         })
-        .join('\n  ');
+        .join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <filter id="capSoft" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000000" flood-opacity="0.7"/>
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+    <filter id="capBrandGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="${brand}" flood-opacity="0.85"/>
     </filter>
   </defs>
   ${lineSvgs}
@@ -1127,8 +1166,9 @@ export function buildStoryGraphics({
         style.graphics?.captionStyle === 'karaoke_bottom' ||
         style.graphics?.captionStyle === 'dialogue_bottom' ||
         style.graphics?.motionText === 'word_highlight';
-    // Default: karaoke / full spoken lines for ALL workspaces when speech is expected.
-    // Keyword title cards (lower_third / bold_hook keywords) only when no ASR and no dialogue.
+    // Like before: word-reveal karaoke for talk styles (script fallback when no ASR).
+    // ASR path (below) still wins when Whisper succeeds — exact spoken words.
+    // bakeCaptionTrack is parallelized so this no longer hangs assemble for minutes.
     const useWordReveal =
         talkStyle ||
         titleStyle === 'word_reveal' ||
@@ -1241,6 +1281,7 @@ export function buildStoryGraphics({
         }
 
         if (useWordReveal) {
+            // Script karaoke (same look as ASR) when Whisper unavailable / silent plate
             const wordLayers = buildWordCaptionLayers({
                 workDir,
                 beatIndex: i,
@@ -1256,9 +1297,7 @@ export function buildStoryGraphics({
             layers.push(...wordLayers);
         } else if (useDialogueCaptions || titleStyle === 'dialogue_caption') {
             /**
-             * BULLETPROOF path: one full-line caption for the ENTIRE cut.
-             * Word-by-word chains were flaky in ffmpeg (dropped frames / gaps)
-             * and looked like "missing subtitles" mid-sentence.
+             * Full-line hold for clean_sans / minimal styles.
              */
             const pngPath = path.join(workDir, `gfx-beat-${i}.png`);
             renderSvgToPng(
@@ -1539,20 +1578,21 @@ export async function composeOverlays({ inputVideo, outputVideo, layers, workDir
         const inp = `[${i + 1}:v]`;
         const out = i === finalLayers.length - 1 ? '[vout]' : `[v${i}]`;
         if (layer.isVideo || layer.kind === 'caption_track') {
-            // Full-time alpha caption track already timed internally
-            parts.push(`${prev}${inp}overlay=0:0:format=auto:eof_action=pass${out}`);
+            // format=rgb keeps brand mint/purple chroma; auto→yuv early was washing fills
+            parts.push(`${prev}${inp}overlay=0:0:format=rgb:eof_action=pass${out}`);
         } else {
             const s = Math.max(0, Number(layer.start) || 0);
             const e = Math.max(s + 0.05, Number(layer.end) || s + 0.05);
             // half-open: gte start, lt end — no double-enable with next
             const en = `gte(t\\,${s.toFixed(3)})*lt(t\\,${e.toFixed(3)})`;
             parts.push(
-                `${prev}${inp}overlay=0:0:format=auto:eof_action=pass:enable='${en}'${out}`
+                `${prev}${inp}overlay=0:0:format=rgb:eof_action=pass:enable='${en}'${out}`
             );
         }
         prev = out;
     });
-    const filter = parts.join(';');
+    // Final yuv420p only after RGB overlay so brand hex survives compositing
+    const filter = `${parts.join(';')};[vout]format=yuv420p[vfinal]`;
 
     const runOverlay = async (withAudio) => {
         const cmd = ['-y', '-i', inputVideo];
@@ -1567,13 +1607,13 @@ export async function composeOverlays({ inputVideo, outputVideo, layers, workDir
             '-filter_complex',
             filter,
             '-map',
-            '[vout]',
+            '[vfinal]',
             '-c:v',
             'libx264',
             '-preset',
             'veryfast',
             '-crf',
-            '18',
+            '16',
             '-pix_fmt',
             'yuv420p',
             '-movflags',

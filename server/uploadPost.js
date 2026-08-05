@@ -86,6 +86,158 @@ export async function createProfile(username) {
     return parseResponse(res);
 }
 
+function profileUsername(p) {
+    return p?.username || p?.name || p?.user || null;
+}
+
+function profileMatches(p, username) {
+    const u = String(username || '').toLowerCase();
+    const n = String(profileUsername(p) || '').toLowerCase();
+    return Boolean(u && n && u === n);
+}
+
+/** Get one profile by username (null if missing) */
+export async function getProfile(username) {
+    if (!username) return null;
+    // Prefer dedicated endpoint when available
+    try {
+        const res = await fetch(
+            `${BASE}/uploadposts/users/${encodeURIComponent(username)}`,
+            { headers: authHeaders() }
+        );
+        if (res.ok) {
+            const data = await parseResponse(res);
+            return data.profile || data;
+        }
+        if (res.status === 404) return null;
+    } catch {
+        /* fall through to list */
+    }
+    const list = await listProfiles();
+    const arr = Array.isArray(list) ? list : [];
+    return arr.find((p) => profileMatches(p, username)) || null;
+}
+
+/**
+ * Ensure an Upload-Post profile exists for a Studio workspace.
+ * Creates if missing; returns { username, profile, created, plan, limit }.
+ */
+export async function ensureProfile(username) {
+    const user = String(username || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '');
+    if (!user) {
+        const err = new Error('username required for Upload-Post profile');
+        err.status = 400;
+        throw err;
+    }
+
+    let plan = null;
+    let limit = null;
+    try {
+        const me = await getMe();
+        plan = me.plan || me.preferences?.plan || null;
+    } catch {
+        /* ignore */
+    }
+
+    const existing = await getProfile(user);
+    if (existing) {
+        return {
+            username: user,
+            profile: existing,
+            created: false,
+            plan,
+            limit,
+            social_accounts: existing.social_accounts || existing.socialAccounts || {},
+        };
+    }
+
+    try {
+        const created = await createProfile(user);
+        const profile = created.profile || created;
+        return {
+            username: user,
+            profile,
+            created: true,
+            plan,
+            limit,
+            social_accounts: profile.social_accounts || {},
+        };
+    } catch (e) {
+        // 409 = already exists (race) — re-fetch
+        if (e.status === 409) {
+            const again = await getProfile(user);
+            if (again) {
+                return {
+                    username: user,
+                    profile: again,
+                    created: false,
+                    plan,
+                    limit,
+                    social_accounts: again.social_accounts || {},
+                };
+            }
+        }
+        throw e;
+    }
+}
+
+/**
+ * Generate white-label connect URL so the client can OAuth social accounts
+ * for a profile (IG/TikTok/LinkedIn/etc.).
+ */
+export async function generateConnectUrl({
+    username,
+    redirectUrl,
+    platforms,
+    connectTitle,
+    connectDescription,
+    showCalendar = true,
+} = {}) {
+    if (!username) {
+        const err = new Error('username required');
+        err.status = 400;
+        throw err;
+    }
+    // Ensure profile exists first (generate-jwt 404s otherwise)
+    await ensureProfile(username);
+
+    const body = {
+        username,
+        show_calendar: showCalendar !== false,
+        connect_title: connectTitle || 'Connect social accounts',
+        connect_description:
+            connectDescription ||
+            'Link Instagram, TikTok, LinkedIn, and more for this Studio workspace.',
+    };
+    if (redirectUrl) body.redirect_url = redirectUrl;
+    if (Array.isArray(platforms) && platforms.length) body.platforms = platforms;
+
+    const res = await fetch(`${BASE}/uploadposts/users/generate-jwt`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+    });
+    return parseResponse(res);
+}
+
+/** Normalize social_accounts object → list of connected platform ids */
+export function connectedPlatformsFromProfile(profile) {
+    const sa = profile?.social_accounts || profile?.socialAccounts || {};
+    const out = [];
+    for (const [platform, val] of Object.entries(sa)) {
+        if (val == null || val === '') continue;
+        if (typeof val === 'object' && !val.display_name && !val.username && !val.social_images) {
+            // empty object / placeholder
+            if (!Object.keys(val).length) continue;
+        }
+        out.push(platform);
+    }
+    return out;
+}
+
 /** Download remote media into a Buffer for multipart re-upload */
 async function fetchMediaBuffer(url) {
     const res = await fetch(url);

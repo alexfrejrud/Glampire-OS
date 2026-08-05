@@ -72,6 +72,7 @@ import {
     GenAuditView,
 } from './components/CreativeTools';
 import { CalendarView } from './components/CalendarView';
+import { SettingsModal } from './components/SettingsModal';
 import './styles.css';
 import './story-styles.css';
 
@@ -315,8 +316,7 @@ function StudioSideNav({
     onSwitchWorkspace,
     onCreateWorkspace,
     onOpenOnboarding,
-    themeMode,
-    onThemeMode,
+    onOpenSettings,
 }) {
     // Core workflow stays top-level; utilities live under Tools
     const studioNav = [
@@ -348,8 +348,9 @@ function StudioSideNav({
 
     return (
         <SideNav
-            collapsible
-            resizable={{ defaultWidth: 260, minWidth: 200, maxWidth: 360, autoSaveId: 'glampire-sidenav' }}
+            // Always open — collapsible/resizable broke layout (stuck icon rail).
+            className="studio-sidenav"
+            style={{ width: 260, minWidth: 260, maxWidth: 260, flexShrink: 0 }}
             header={
                 <SideNavHeading
                     heading="Glampire OS"
@@ -385,20 +386,6 @@ function StudioSideNav({
             }
             footer={
                 <VStack gap={2} padding={2}>
-                    <Text type="label" color="secondary">
-                        Appearance
-                    </Text>
-                    <SegmentedControl
-                        label="Theme mode"
-                        value={themeMode}
-                        onChange={onThemeMode}
-                        size="sm"
-                        layout="fill"
-                    >
-                        <SegmentedControlItem value="light" label="Light" icon={<Sun size={14} />} />
-                        <SegmentedControlItem value="dark" label="Dark" icon={<Moon size={14} />} />
-                        <SegmentedControlItem value="system" label="Auto" icon={<Monitor size={14} />} />
-                    </SegmentedControl>
                     <HStack gap={1} vAlign="center">
                         <StatusDot
                             variant="neutral"
@@ -456,11 +443,14 @@ function StudioSideNav({
                         key={id}
                         label={label}
                         icon={<Icon size={18} />}
-                        isSelected={view === id}
+                        isSelected={view === id && id !== 'settings'}
                         onClick={() => {
                             if (id === 'onboarding') {
-                                // Always open Brand OS wizard (edit path if locked)
                                 onOpenOnboarding?.();
+                                return;
+                            }
+                            if (id === 'settings') {
+                                onOpenSettings?.();
                                 return;
                             }
                             setView(id);
@@ -3522,6 +3512,7 @@ function App() {
     const [themeMode, setThemeMode] = useState(() => loadThemeMode());
     const [onboardingOpen, setOnboardingOpen] = useState(false);
     const [onboardingMode, setOnboardingMode] = useState('resume'); // create | resume
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [bootstrapped, setBootstrapped] = useState(false);
 
     const updateStore = useCallback((patch) => {
@@ -3597,18 +3588,23 @@ function App() {
                 const nextItems = queue.items.map((item) => {
                     const hit = finals[item.id];
                     if (!hit?.finalVideoUrl) return item;
+                    // Always adopt server URL (includes ?t=mtime) so re-burns
+                    // of captions/brand color aren't stuck behind browser cache
                     const needs =
                         item.status === 'error' ||
                         item.status === 'generating' ||
                         !item.composedVideoUrl ||
                         !item.finalVideoUrl ||
-                        item.composedVideoUrl !== hit.finalVideoUrl;
+                        item.composedVideoUrl !== hit.finalVideoUrl ||
+                        item.finalVideoUrl !== hit.finalVideoUrl ||
+                        item.renderMtime !== hit.mtime;
                     if (!needs) return item;
                     changed = true;
                     return {
                         ...item,
                         composedVideoUrl: hit.finalVideoUrl,
                         finalVideoUrl: hit.finalVideoUrl,
+                        renderMtime: hit.mtime,
                         status: 'ready',
                         error: null,
                         graphicsEngine: item.graphicsEngine || 'caption_track+overlay',
@@ -4534,8 +4530,7 @@ function App() {
                     handleOpenOnboarding();
                 }
             }}
-            themeMode={themeMode}
-            onThemeMode={handleThemeMode}
+            onOpenSettings={() => setSettingsOpen(true)}
         />
     );
 
@@ -4668,22 +4663,33 @@ function App() {
                                         onEditBrandOs={handleEditBrandOs}
                                     />
                                 )}
-                                {view === 'settings' && (
-                                    <SettingsView
-                                        health={health}
-                                        workspace={activeWorkspace}
-                                        workspaces={workspaces}
-                                        publishUser={publishUser}
-                                        themeMode={themeMode}
-                                        onThemeMode={handleThemeMode}
-                                        onOpenOnboarding={handleOpenOnboarding}
-                                        onEditBrandOs={handleEditBrandOs}
-                                    />
-                                )}
                             </>
                         )}
                     </div>
                 </AppShell>
+
+                <SettingsModal
+                    open={settingsOpen}
+                    onClose={() => setSettingsOpen(false)}
+                    workspace={activeWorkspace}
+                    workspaces={workspaces}
+                    health={health}
+                    publishUser={publishUser}
+                    themeMode={themeMode}
+                    onThemeMode={handleThemeMode}
+                    onOpenBrandOs={() => {
+                        if (
+                            activeWorkspace?.status === 'ready' ||
+                            activeWorkspace?.lockedAt
+                        ) {
+                            handleEditBrandOs();
+                        } else {
+                            handleOpenOnboarding();
+                        }
+                    }}
+                    onOpenBrandKit={() => setView('brand')}
+                    onToast={setToast}
+                />
 
                 {publishItem && (
                     <PublishModal

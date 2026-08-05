@@ -33,6 +33,78 @@ function run(cmd, args, opts = {}) {
     });
 }
 
+/**
+ * Resolve a Python that can `import whisper`.
+ * Homebrew python3 is often first on PATH but has no openai-whisper;
+ * macOS /usr/bin/python3 + user site-packages often does. Cache the result.
+ *
+ * Override: WHISPER_PYTHON=/path/to/python
+ */
+let _whisperPython = undefined; // undefined=unset, null=missing, string=path
+let _whisperPythonPromise = null;
+
+function whisperCandidatePythons() {
+    const list = [];
+    if (process.env.WHISPER_PYTHON) list.push(process.env.WHISPER_PYTHON);
+    // Project venvs (if present)
+    list.push(
+        path.join(__dirname, '..', '.venv-whisper', 'bin', 'python'),
+        path.join(__dirname, '..', '.venv', 'bin', 'python'),
+        path.join(__dirname, '..', 'venv', 'bin', 'python')
+    );
+    // Prefer system Python (where whisper was installed for this machine)
+    list.push('/usr/bin/python3');
+    list.push('python3');
+    list.push('/opt/homebrew/bin/python3');
+    list.push('/usr/local/bin/python3');
+    return [...new Set(list.filter(Boolean))];
+}
+
+async function probePythonHasWhisper(pythonBin) {
+    return new Promise((resolve) => {
+        const child = spawn(pythonBin, ['-c', 'import whisper; print("ok")'], {
+            env: { ...process.env, PYTHONUNBUFFERED: '1' },
+        });
+        let ok = false;
+        child.stdout?.on('data', (d) => {
+            if (String(d).includes('ok')) ok = true;
+        });
+        child.on('error', () => resolve(false));
+        child.on('close', () => resolve(ok));
+    });
+}
+
+/** @returns {Promise<string|null>} absolute or PATH python that has whisper */
+export async function resolveWhisperPython() {
+    if (_whisperPython !== undefined) return _whisperPython;
+    if (_whisperPythonPromise) return _whisperPythonPromise;
+
+    _whisperPythonPromise = (async () => {
+        for (const bin of whisperCandidatePythons()) {
+            // Skip missing project venv paths
+            if (bin.includes(path.sep) && bin.startsWith('/') && !fs.existsSync(bin)) {
+                continue;
+            }
+            try {
+                if (await probePythonHasWhisper(bin)) {
+                    _whisperPython = bin;
+                    console.log(`[asrCaptions] Whisper python: ${bin}`);
+                    return bin;
+                }
+            } catch {
+                /* try next */
+            }
+        }
+        _whisperPython = null;
+        console.warn(
+            '[asrCaptions] No python with openai-whisper found (tried WHISPER_PYTHON, venvs, /usr/bin/python3, python3)'
+        );
+        return null;
+    })();
+
+    return _whisperPythonPromise;
+}
+
 /** Extract mono 16k wav for Whisper. */
 export async function extractWav(videoPath, wavPath, { start = null, duration = null } = {}) {
     const args = ['-y'];
@@ -109,8 +181,9 @@ out = {
 print(json.dumps(out))
 `.trim();
 
+    const pythonBin = (await resolveWhisperPython()) || 'python3';
     const { stdout } = await run(
-        'python3',
+        pythonBin,
         ['-c', py, mediaPath, model, language || 'en'],
         { env: { ...process.env, PYTHONUNBUFFERED: '1' } }
     );
@@ -358,14 +431,7 @@ export async function asrBeats(beatVideoPaths, cutStarts, workDir, opts = {}) {
     return { words: allWords, beats: beatsOut, reportPath };
 }
 
-export function hasLocalWhisper() {
-    return new Promise((resolve) => {
-        const child = spawn('python3', ['-c', 'import whisper; print("ok")']);
-        let ok = false;
-        child.stdout?.on('data', (d) => {
-            if (String(d).includes('ok')) ok = true;
-        });
-        child.on('close', () => resolve(ok));
-        child.on('error', () => resolve(false));
-    });
+export async function hasLocalWhisper() {
+    const bin = await resolveWhisperPython();
+    return Boolean(bin);
 }

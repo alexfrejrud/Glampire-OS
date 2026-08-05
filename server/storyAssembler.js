@@ -413,24 +413,41 @@ export async function assembleStoryReel(
                 );
                 console.log('[storyAssembler] ASR text:', (asr.text || '').slice(0, 200));
             } else {
-                asrMeta = { ok: false, reason: 'whisper_not_installed' };
+                asrMeta = {
+                    ok: false,
+                    reason: 'whisper_not_installed',
+                    note: 'Script word karaoke (set WHISPER_PYTHON if whisper is installed elsewhere)',
+                };
                 console.warn(
-                    '[storyAssembler] Whisper not available — falling back to script captions (may mismatch lips)'
+                    '[storyAssembler] Whisper not available — script word karaoke fallback'
                 );
+            }
+            // Empty ASR (silence / no words) → treat as failed so script path runs
+            if (
+                asrMeta?.ok &&
+                (!Array.isArray(asrKaraokeWindows) || asrKaraokeWindows.length === 0)
+            ) {
+                asrMeta = {
+                    ok: false,
+                    reason: 'asr_empty',
+                    note: 'Whisper returned no words — script word karaoke',
+                    text: asrMeta.text || '',
+                };
+                asrKaraokeWindows = null;
+                console.warn('[storyAssembler] ASR empty — script word karaoke');
             }
         } catch (e) {
             asrMeta = { ok: false, reason: e.message };
-            console.warn('[storyAssembler] ASR failed, script captions fallback:', e.message);
+            asrKaraokeWindows = null;
+            console.warn('[storyAssembler] ASR failed, script karaoke fallback:', e.message);
         }
     } else if (burnTitles && !plateHasAudio) {
         asrMeta = {
             ok: false,
             reason: 'no_plate_audio',
-            note: 'Silent plate — using script karaoke (or add native speech / VO then re-assemble)',
+            note: 'Silent plate — script word karaoke',
         };
-        console.warn(
-            '[storyAssembler] No speech on plate — script captions (mismatch risk). Prefer Grok/Kling with dialogue in prompt.'
-        );
+        console.warn('[storyAssembler] No speech on plate — script word karaoke');
     }
 
     // BEST PATH: brand SVG → PNG (resvg) → timed ffmpeg overlay (works without drawtext)
@@ -579,9 +596,17 @@ export async function assembleStoryReel(
         fs.copyFileSync(withAudio, publicFinal);
     }
 
+    // Cache-bust so the browser never keeps a pre-caption / wrong-color encode
+    let bust = Date.now();
+    try {
+        bust = Math.round(fs.statSync(publicFinal).mtimeMs);
+    } catch {
+        /* keep Date.now */
+    }
+
     return {
         finalVideoPath: publicFinal,
-        finalVideoUrl: `/api/renders/${path.basename(publicFinal)}`,
+        finalVideoUrl: `/api/renders/${path.basename(publicFinal)}?t=${bust}`,
         stitchedPath: stitched,
         hyperframes: hf,
         graphicsEngine,

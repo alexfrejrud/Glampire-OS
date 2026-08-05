@@ -59,6 +59,10 @@ import {
   getMe,
   listProfiles,
   createProfile,
+  ensureProfile,
+  generateConnectUrl,
+  getProfile,
+  connectedPlatformsFromProfile,
   publishCreative,
   getUploadStatus,
 } from './uploadPost.js';
@@ -197,7 +201,7 @@ app.post('/api/workspaces/active', (req, res) => {
   }
 });
 
-app.post('/api/workspaces', (req, res) => {
+app.post('/api/workspaces', async (req, res) => {
   try {
     const { id, name, oneLiner, category, website } = req.body || {};
     const workspace = createWorkspace({ id, name, oneLiner, category });
@@ -208,9 +212,29 @@ app.post('/api/workspaces', (req, res) => {
       category: category || '',
       website: website || '',
     });
+
+    // Auto-create matching Upload-Post profile (best-effort; membership may block)
+    let uploadPost = null;
+    const publish = loadPublish(workspace.id);
+    const upUser = publish.uploadPostUser;
+    if (upUser && hasUploadPostKey()) {
+      try {
+        uploadPost = await ensureProfile(upUser);
+      } catch (e) {
+        console.warn('[workspace create] Upload-Post profile:', e.message);
+        uploadPost = {
+          username: upUser,
+          created: false,
+          error: e.message,
+          code: e.details?.error_code || e.code || null,
+        };
+      }
+    }
+
     res.status(201).json({
       workspace: getWorkspacePublic(workspace.id),
       onboarding,
+      uploadPost,
       openOnboarding: true,
     });
   } catch (err) {
@@ -448,7 +472,8 @@ app.get('/api/renders', (_req, res) => {
       if (!id) continue;
       const full = path.join(dir, f);
       const st = fs.statSync(full);
-      const url = `/api/renders/${f}`;
+      // mtime query busts browser cache after re-assemble (captions/brand recolor)
+      const url = `/api/renders/${f}?t=${Math.round(st.mtimeMs)}`;
       const entry = {
         id,
         fileName: f,
@@ -490,7 +515,15 @@ app.get('/api/renders/:fileName', (req, res) => {
     }
     res.type('video/mp4');
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    // Prefer revalidation — re-assembled captions/brand must not stick as old MP4 for 1h
+    try {
+      const st = fs.statSync(filePath);
+      res.setHeader('ETag', `"${st.size}-${Math.round(st.mtimeMs)}"`);
+      res.setHeader('Last-Modified', st.mtime.toUTCString());
+    } catch {
+      /* ignore */
+    }
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.sendFile(filePath);
   } catch (err) {
     const status = err.status || (err.code === 'ICLOUD_OFFLINE' ? 503 : 500);
@@ -1235,6 +1268,121 @@ app.post('/api/upload-post/profiles', async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message, details: err.details });
+  }
+});
+
+/**
+ * Ensure Upload-Post profile exists for active workspace (or body.username).
+ * Creates profile if missing. Used by Settings + workspace create.
+ */
+app.post('/api/upload-post/ensure-profile', async (req, res) => {
+  try {
+    const publish = loadPublish();
+    const username =
+      req.body?.username ||
+      publish.uploadPostUser ||
+      process.env.UPLOAD_POST_DEFAULT_USER;
+    if (!username) {
+      return res.status(400).json({ error: 'No uploadPostUser for this workspace' });
+    }
+    const result = await ensureProfile(username);
+    const connected = connectedPlatformsFromProfile(result.profile);
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      ...result,
+      connectedPlatforms: connected,
+      defaultPlatforms: publish.defaultPlatforms || [],
+    });
+  } catch (err) {
+    console.error('[upload-post ensure-profile]', err.message);
+    res.status(err.code === 'NO_UPLOAD_POST_KEY' ? 400 : err.status || 500).json({
+      error: err.message,
+      code: err.code || err.details?.error_code,
+      details: err.details,
+    });
+  }
+});
+
+/** Profile + connected platforms for active workspace */
+app.get('/api/upload-post/workspace-profile', async (_req, res) => {
+  try {
+    const publish = loadPublish();
+    const username = publish.uploadPostUser || process.env.UPLOAD_POST_DEFAULT_USER;
+    if (!username) {
+      return res.json({
+        ok: true,
+        username: null,
+        profile: null,
+        connectedPlatforms: [],
+        defaultPlatforms: publish.defaultPlatforms || [],
+      });
+    }
+    let profile = null;
+    let created = false;
+    if (hasUploadPostKey()) {
+      try {
+        const ensured = await ensureProfile(username);
+        profile = ensured.profile;
+        created = ensured.created;
+      } catch (e) {
+        return res.status(e.status || 500).json({
+          error: e.message,
+          code: e.details?.error_code || e.code,
+          username,
+        });
+      }
+    }
+    res.json({
+      ok: true,
+      workspaceId: getActiveWorkspaceId(),
+      username,
+      profile,
+      created,
+      connectedPlatforms: connectedPlatformsFromProfile(profile),
+      defaultPlatforms: publish.defaultPlatforms || [],
+      hasKey: hasUploadPostKey(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Generate Upload-Post connect URL (OAuth for social accounts on this profile).
+ * body: { username?, redirectUrl?, platforms? }
+ */
+app.post('/api/upload-post/connect-url', async (req, res) => {
+  try {
+    const publish = loadPublish();
+    const username =
+      req.body?.username ||
+      publish.uploadPostUser ||
+      process.env.UPLOAD_POST_DEFAULT_USER;
+    if (!username) {
+      return res.status(400).json({ error: 'No uploadPostUser for this workspace' });
+    }
+    const data = await generateConnectUrl({
+      username,
+      redirectUrl: req.body?.redirectUrl,
+      platforms: req.body?.platforms,
+      connectTitle: req.body?.connectTitle || `Connect · ${getWorkspacePublic()?.name || username}`,
+      showCalendar: req.body?.showCalendar !== false,
+    });
+    res.json({
+      ok: true,
+      username,
+      accessUrl: data.access_url || data.accessUrl,
+      duration: data.duration,
+      raw: data,
+    });
+  } catch (err) {
+    console.error('[upload-post connect-url]', err.message);
+    res.status(err.code === 'NO_UPLOAD_POST_KEY' ? 400 : err.status || 500).json({
+      error: err.message,
+      code: err.code || err.details?.error_code,
+      details: err.details,
+    });
   }
 });
 

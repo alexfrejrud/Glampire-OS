@@ -180,6 +180,17 @@ export const api = {
 
     uploadPostMe: () => req('/api/upload-post/me'),
     uploadPostProfiles: () => req('/api/upload-post/profiles'),
+    ensureUploadPostProfile: (body = {}) =>
+        req('/api/upload-post/ensure-profile', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
+    workspaceUploadPostProfile: () => req('/api/upload-post/workspace-profile'),
+    uploadPostConnectUrl: (body = {}) =>
+        req('/api/upload-post/connect-url', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
     publish: (body) =>
         req('/api/upload-post/publish', { method: 'POST', body: JSON.stringify(body) }),
     publishStatus: (requestId) => req(`/api/upload-post/status/${requestId}`),
